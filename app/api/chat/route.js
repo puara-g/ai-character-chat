@@ -1,7 +1,9 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(
+  process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY
+);
 
 export async function POST(req) {
   try {
@@ -12,7 +14,6 @@ export async function POST(req) {
       return Response.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
     }
 
-    // 1. 캐릭터 System Instruction 조합
     const systemInstruction = `
 너는 지금부터 사용자가 설정한 아래 캐릭터로 완벽하게 빙의하여 연기해야 해.
 
@@ -29,7 +30,12 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
 2. AI라는 티를 내지 말고, 오직 캐릭터로서 답변할 것.
     `.trim();
 
-    // 2. DB에서 이전 대화 내역 불러오기 (세션 ID가 있을 경우)
+    // 💡 목록에 있는 합법적인(?) 최신 호환 모델로 드디어 교체!
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      systemInstruction: systemInstruction,
+    });
+
     let history = [];
     if (sessionId) {
       const { data: previousMessages } = await supabase
@@ -39,7 +45,7 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
         .order('created_at', { ascending: true })
         .limit(10);
 
-      if (previousMessages) {
+      if (previousMessages && previousMessages.length > 0) {
         history = previousMessages.map((msg) => ({
           role: msg.sender === 'user' ? 'user' : 'model',
           parts: [{ text: msg.content }],
@@ -47,24 +53,19 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
       }
     }
 
-    // 사용자 메시지를 대화 내역에 추가
-    const contents = [...history, { role: 'user', parts: [{ text: message }] }];
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(message);
+    const botReply = result.response.text();
 
-    // 3. Gemini API 호출
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      config: { systemInstruction },
-      contents,
-    });
-
-    const botReply = response.text;
-
-    // 4. DB에 유저 메시지와 AI 답변 저장 (세션 ID가 있을 경우)
-    if (sessionId) {
-      await supabase.from('messages').insert([
-        { session_id: sessionId, sender: 'user', content: message },
-        { session_id: sessionId, sender: 'bot', content: botReply },
-      ]);
+    if (sessionId && botReply) {
+      try {
+        await supabase.from('messages').insert([
+          { session_id: sessionId, sender: 'user', content: message },
+          { session_id: sessionId, sender: 'bot', content: botReply },
+        ]);
+      } catch (dbErr) {
+        console.error('DB 저장 오류 (무시 가능):', dbErr);
+      }
     }
 
     return Response.json({ reply: botReply });

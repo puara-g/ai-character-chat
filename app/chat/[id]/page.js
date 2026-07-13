@@ -1,9 +1,13 @@
 'use client';
+
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function ChatPage({ params }) {
-  const { id: characterId } = use(params);
+  // Next.js 15+ 비동기 params 처리
+  const resolvedParams = use(params);
+  const characterId = resolvedParams.id;
+
   const [character, setCharacter] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -11,27 +15,50 @@ export default function ChatPage({ params }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    initChat();
+    if (characterId) {
+      initChat();
+    }
   }, [characterId]);
 
   const initChat = async () => {
     // 1. 캐릭터 정보 조회
-    const { data: charData } = await supabase.from('characters').select('*').eq('id', characterId).single();
+    const { data: charData } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('id', characterId)
+      .maybeSingle();
+
     if (charData) setCharacter(charData);
 
-    // 2. 대화 세션 생성 또는 가져오기
-    let { data: session } = await supabase.from('chat_sessions').select('*').eq('character_id', characterId).limit(1).single();
-    
+    // 2. 대화 세션 조회 (single 대신 maybeSingle 사용하여 에러 방지)
+    let { data: session } = await supabase
+      .from('chat_sessions')
+      .select('*')
+      .eq('character_id', characterId)
+      .maybeSingle();
+
+    // 세션이 없으면 새로 생성
     if (!session) {
-      const { data: newSession } = await supabase.from('chat_sessions').insert([{ character_id: characterId }]).select().single();
+      const { data: newSession } = await supabase
+        .from('chat_sessions')
+        .insert([{ character_id: characterId }])
+        .select()
+        .single();
       session = newSession;
     }
 
-    setSessionId(session.id);
+    if (session) {
+      setSessionId(session.id);
 
-    // 3. 기존 대화 기록 조회
-    const { data: msgHistory } = await supabase.from('messages').select('*').eq('session_id', session.id).order('created_at', { ascending: true });
-    if (msgHistory) setMessages(msgHistory);
+      // 3. 기존 대화 기록 조회
+      const { data: msgHistory } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true });
+
+      if (msgHistory) setMessages(msgHistory);
+    }
   };
 
   const handleSend = async () => {
@@ -43,17 +70,24 @@ export default function ChatPage({ params }) {
     const newMsgs = [...messages, { sender: 'user', content: userMsg }];
     setMessages(newMsgs);
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMsg, sessionId, character }),
-    });
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg, sessionId, character }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
 
-    if (data.reply) {
-      setMessages([...newMsgs, { sender: 'bot', content: data.reply }]);
+      if (data.reply) {
+        setMessages([...newMsgs, { sender: 'bot', content: data.reply }]);
+      } else if (data.error) {
+        alert(`오류 발생: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('전송 실패:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,15 +101,18 @@ export default function ChatPage({ params }) {
 
       <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((m, i) => (
-          <div key={i} style={{
-            alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-            background: m.sender === 'user' ? '#6c5ce7' : '#fff',
-            color: m.sender === 'user' ? '#fff' : '#000',
-            padding: '10px 14px',
-            borderRadius: '12px',
-            maxWidth: '80%',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-          }}>
+          <div
+            key={i}
+            style={{
+              alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
+              background: m.sender === 'user' ? '#6c5ce7' : '#fff',
+              color: m.sender === 'user' ? '#fff' : '#000',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              maxWidth: '80%',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            }}
+          >
             {m.content}
           </div>
         ))}

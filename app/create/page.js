@@ -23,6 +23,31 @@ export default function CreateCharacter() {
     } else {
       alert('데이터가 반환되지 않았습니다.');
     }
+    // 캐릭터 저장 버튼 누를 때 코드 예시
+const handleCreateCharacter = async () => {
+  // 1. 현재 유저 구하기
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+
+  // 2. user_id를 포함해서 insert
+  const { data, error } = await supabase.from('characters').insert([
+    {
+      name: name,
+      gender: gender,
+      personality: personality,
+      tone: tone,
+      user_id: user.id, // 👈 로그인된 유저의 ID를 꼭 넣어줍니다!
+    }
+  ]);
+  
+  if (!error) {
+    router.push('/');
+  }
+};
   };
 
   return (
