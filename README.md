@@ -1,4 +1,3 @@
-```markdown
 # 🤖 AI Character Chat (AI 캐릭터 대화 서비스)
 
 > **Next.js & Supabase & Gemini API 기반 AI 페르소나 캐릭터 챗봇**
