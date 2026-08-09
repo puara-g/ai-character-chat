@@ -32,7 +32,7 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
 
     // 💡 목록에 있는 합법적인(?) 최신 호환 모델로 드디어 교체!
     const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: systemInstruction,
     });
 
