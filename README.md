@@ -89,10 +89,10 @@ npm run dev
 <br>
 
 ## 🛠️ 기술 스택 (Tech Stack)
-
+```
 * **Framework**: Next.js 15+ (App Router)
 * **Language**: JavaScript (ES6+)
 * **Backend & Database**: Supabase (Database, Auth, Storage)
 * **AI Model**: Google Gemini API (`gemini-2.0-flash-lite`)
 * **Styling**: Inline CSS (Clean Mobile First Layout)
-```
+
