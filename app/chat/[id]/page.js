@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useRef, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages } from '@/lib/guest';
 import GuestNotice from '@/components/GuestNotice';
+import styles from './chat.module.css';
 
-// 💡 프로필 이미지가 없을 때 띄울 기본 이미지
+// 프로필 이미지가 없을 때 띄울 기본 이미지
 const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
 export default function ChatPage({ params }) {
@@ -21,6 +22,14 @@ export default function ChatPage({ params }) {
   const [loading, setLoading] = useState(false);
   // 로그인 안 했으면 대화를 이 탭에만 임시 보관 (체험 캐릭터든 공개 캐릭터든)
   const [isGuest, setIsGuest] = useState(false);
+  const [error, setError] = useState('');
+  const scrollRef = useRef(null);
+
+  // 새 메시지가 오면 맨 아래로
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [messages, loading]);
 
   const initChat = async () => {
     // 체험 모드 캐릭터: 이 탭에 임시 저장된 데이터 사용
@@ -105,6 +114,7 @@ export default function ChatPage({ params }) {
     const userMsg = input;
     setInput('');
     setLoading(true);
+    setError('');
 
     const newMsgs = [...messages, { sender: 'user', content: userMsg }];
     setMessages(newMsgs);
@@ -135,143 +145,139 @@ export default function ChatPage({ params }) {
           setGuestMessages(characterId, updated);
         }
       } else if (data.error) {
-        alert(`오류 발생: ${data.error}`);
+        setError(`답장을 받지 못했어요: ${data.error}`);
       }
     } catch (err) {
       console.error('전송 실패:', err);
+      setError('전송에 실패했어요. 인터넷 연결을 확인해 주세요.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!character) return <p style={{ textAlign: 'center', marginTop: '40px' }}>로딩 중...</p>;
+  if (!character) {
+    return (
+      <div className={styles.loadingPage}>
+        <div className={styles.typing} aria-label="불러오는 중">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  }
 
-  // 프로필 이미지 (없으면 DEFAULT_AVATAR)
   const profileImage = character.avatar_url || DEFAULT_AVATAR;
+  const tags = (character.personality || '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const canSend = input.trim() && !loading;
 
   return (
-    <main style={{ maxWidth: '500px', margin: '0 auto', height: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
-      
-      {/* 💡 뒤로가기 버튼이 탑재된 깔끔한 헤더 */}
-      <header
-        style={{
-          padding: '12px 16px',
-          background: '#6c5ce7',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'white',
-            fontSize: '22px',
-            cursor: 'pointer',
-            padding: '0 8px',
-            lineHeight: 1,
-          }}
-          aria-label="메인 화면으로 이동"
-        >
-          ←
-        </button>
-
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', flex: 1, textAlign: 'center', marginRight: '30px' }}>
-          💬 {character.name}
-        </h3>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <button type="button" className={styles.back} onClick={() => router.push('/')} aria-label="목록으로">
+            ←
+          </button>
+          <img
+            className={styles.headerAvatar}
+            src={profileImage}
+            alt=""
+            onError={(e) => {
+              e.currentTarget.src = DEFAULT_AVATAR;
+            }}
+          />
+          <div className={styles.headerText}>
+            <h1 className={styles.headerName}>{character.name}</h1>
+            <p className={styles.headerMeta}>{[tags.join(', '), character.tone].filter(Boolean).join(' · ')}</p>
+          </div>
+        </div>
       </header>
 
-      {/* 대화 내역 영역 */}
-      <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {isGuest && (
-          <GuestNotice
-            what="이 대화는"
-            onLogin={() => router.push('/login?mode=signup')}
-            style={{ marginBottom: 0 }}
-          />
-        )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-              gap: '8px',
-              maxWidth: '85%',
-            }}
-          >
-            {/* AI 메시지일 경우 왼쪽 프로필 노출 */}
-            {m.sender !== 'user' && (
-              <img
-                src={profileImage}
-                alt={character.name}
-                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '1px solid #ddd',
-                  flexShrink: 0,
-                }}
-              />
-            )}
+      <main className={styles.messages} ref={scrollRef}>
+        <div className={styles.thread}>
+          {isGuest && (
+            <GuestNotice what="이 대화는" onLogin={() => router.push('/login?mode=signup')} />
+          )}
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {m.sender !== 'user' && (
-                <span style={{ fontSize: '12px', color: '#666', marginBottom: '4px', marginLeft: '2px' }}>
-                  {character.name}
-                </span>
-              )}
+          <div className={styles.intro}>
+            <img className={styles.introAvatar} src={profileImage} alt="" onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
+            <h2 className={styles.introName}>{character.name}</h2>
+            <div className={styles.introTags}>
+              {tags.map((t) => (
+                <span key={t} className={styles.tag}>{t}</span>
+              ))}
+              {character.tone && <span className={`${styles.tag} ${styles.tagTone}`}>{character.tone}</span>}
+            </div>
+            {!messages.length && <p className={styles.introHint}>먼저 말을 걸어 보세요!</p>}
+          </div>
 
+          {messages.map((m, i) => {
+            const isUser = m.sender === 'user';
+            const firstOfGroup = i === 0 || messages[i - 1].sender !== m.sender;
+            return (
               <div
-                style={{
-                  background: m.sender === 'user' ? '#6c5ce7' : '#fff',
-                  color: m.sender === 'user' ? '#fff' : '#000',
-                  padding: '10px 14px',
-                  borderRadius: '14px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                  lineHeight: '1.4',
-                }}
+                key={m.id || i}
+                className={`${styles.row} ${isUser ? styles.rowUser : styles.rowBot} ${firstOfGroup ? styles.rowFirst : ''}`}
               >
-                {m.content}
+                {!isUser && (
+                  firstOfGroup ? (
+                    <img className={styles.bubbleAvatar} src={profileImage} alt="" onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
+                  ) : (
+                    <span className={styles.avatarSpacer} />
+                  )
+                )}
+                <div className={styles.bubbleCol}>
+                  {!isUser && firstOfGroup && <span className={styles.sender}>{character.name}</span>}
+                  <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleBot}`}>{m.content}</div>
+                </div>
+              </div>
+            );
+          })}
+
+          {loading && (
+            <div className={`${styles.row} ${styles.rowBot} ${styles.rowFirst}`}>
+              <img className={styles.bubbleAvatar} src={profileImage} alt="" />
+              <div className={`${styles.bubble} ${styles.bubbleBot}`}>
+                <div className={styles.typing} aria-label="답장 쓰는 중">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )}
 
-        {loading && (
-          <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-start' }}>
-            <img
-              src={profileImage}
-              alt={character.name}
-              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-            />
-            <p style={{ color: '#888', fontSize: '13px', marginTop: '10px' }}>답변을 생각하는 중...</p>
-          </div>
-        )}
-      </div>
+          {error && <p className={styles.error}>{error}</p>}
+        </div>
+      </main>
 
-      {/* 하단 입력창 */}
-      <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #ddd', display: 'flex', gap: '8px' }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="메시지를 입력하세요..."
-          style={{ flex: 1, padding: '10px 14px', borderRadius: '20px', border: '1px solid #ccc', outline: 'none' }}
-        />
-        <button
-          onClick={handleSend}
-          style={{ background: '#6c5ce7', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          전송
-        </button>
-      </div>
-    </main>
+      <form
+        className={styles.composer}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSend();
+        }}
+      >
+        <div className={styles.composerInner}>
+          <input
+            type="text"
+            className={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={`${character.name}에게 메시지 보내기`}
+            aria-label="메시지"
+          />
+          <button type="submit" className={styles.send} disabled={!canSend} aria-label="보내기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

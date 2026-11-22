@@ -155,7 +155,7 @@ export default function HomePage() {
         {!loading && !user && <GuestNotice onLogin={() => router.push('/login?mode=signup')} />}
 
         {/* 내 캐릭터 */}
-        <section className={styles.section} style={{ marginTop: 24 }}>
+        <section className={`${styles.section} ${styles.sectionFirst}`}>
           <div className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>
               내 캐릭터{!loading && <span className={styles.count}>{characters.length}</span>}

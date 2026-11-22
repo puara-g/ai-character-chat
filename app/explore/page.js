@@ -80,7 +80,7 @@ export default function ExplorePage() {
             aria-label="캐릭터 검색"
           />
         </div>
-        <div className={styles.chips} style={{ marginBottom: 20 }}>
+        <div className={styles.chips}>
           {FILTERS.map((f) => (
             <button
               key={f}
@@ -119,7 +119,7 @@ export default function ExplorePage() {
             <button
               type="button"
               className={styles.moreLink}
-              style={{ marginTop: 8, color: 'var(--purple)' }}
+              style={{ marginTop: 'var(--space-2)', color: 'var(--purple)' }}
               onClick={() => router.push('/create')}
             >
               내 캐릭터 만들어서 공개하기 →

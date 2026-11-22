@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import styles from './login.module.css';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false); // 로그인 / 회원가입 모드 전환
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null); // { type: 'error' | 'info', text }
   const router = useRouter();
 
   // "저장하려면 회원가입" 버튼으로 들어오면 회원가입 모드로 시작
@@ -18,64 +21,132 @@ export default function LoginPage() {
     if (new URLSearchParams(window.location.search).get('mode') === 'signup') setIsSignUp(true);
   }, []);
 
+  const switchMode = (signUp) => {
+    setIsSignUp(signUp);
+    setMessage(null);
+  };
+
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage(null);
 
-    if (isSignUp) {
-      // 회원가입
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) alert(`회원가입 실패: ${error.message}`);
-      else alert('회원가입 성공! 로그인해 주세요.');
-    } else {
-      // 로그인
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert(`로그인 실패: ${error.message}`);
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          setMessage({ type: 'error', text: `회원가입 실패: ${error.message}` });
+        } else if (data.session) {
+          // 이메일 인증이 꺼져 있으면 바로 로그인됨
+          router.push('/');
+          router.refresh();
+          return;
+        } else {
+          setMessage({ type: 'info', text: '가입 완료! 메일함에서 인증 링크를 누른 뒤 로그인해 주세요.' });
+          setIsSignUp(false);
+        }
       } else {
-        router.push('/'); // 로그인 성공 시 메인 화면으로 이동
-        router.refresh();
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setMessage({ type: 'error', text: '이메일 또는 비밀번호가 맞지 않아요.' });
+        } else {
+          router.push('/');
+          router.refresh();
+          return;
+        }
       }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || '문제가 생겼어요. 다시 시도해 주세요.' });
     }
     setLoading(false);
   };
 
   return (
-    <main style={{ maxWidth: '400px', margin: '80px auto', padding: '20px', textAlign: 'center' }}>
-      <h2>{isSignUp ? '회원가입' : '로그인'}</h2>
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-        <input
-          type="email"
-          placeholder="이메일"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ccc' }}
-        />
-        <input
-          type="password"
-          placeholder="비밀번호"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ccc' }}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '12px', background: '#6c5ce7', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {loading ? '처리 중...' : isSignUp ? '회원가입 하기' : '로그인 하기'}
+    <div className={styles.page}>
+      <main className={styles.card}>
+        <Link href="/" className={styles.brand}>
+          <span className={styles.brandMark}>💬</span>
+          AI 캐릭터
+        </Link>
+
+        <h1 className={styles.title}>{isSignUp ? '계정 만들기' : '다시 만나서 반가워요'}</h1>
+        <p className={styles.sub}>
+          {isSignUp ? '가입하면 만든 캐릭터와 대화가 저장돼요.' : '로그인하고 내 캐릭터와 이어서 대화하세요.'}
+        </p>
+
+        <div className={styles.tabs} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!isSignUp}
+            className={`${styles.tab} ${!isSignUp ? styles.tabOn : ''}`}
+            onClick={() => switchMode(false)}
+          >
+            로그인
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isSignUp}
+            className={`${styles.tab} ${isSignUp ? styles.tabOn : ''}`}
+            onClick={() => switchMode(true)}
+          >
+            회원가입
+          </button>
+        </div>
+
+        <form onSubmit={handleAuth} className={styles.form}>
+          <div>
+            <label className={styles.label} htmlFor="email">
+              이메일
+            </label>
+            <input
+              id="email"
+              type="email"
+              className={styles.input}
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div>
+            <label className={styles.label} htmlFor="password">
+              비밀번호
+            </label>
+            <input
+              id="password"
+              type="password"
+              className={styles.input}
+              placeholder={isSignUp ? '6자 이상' : '비밀번호'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              minLength={6}
+              required
+            />
+          </div>
+
+          {message && (
+            <p className={`${styles.message} ${message.type === 'error' ? styles.messageError : styles.messageInfo}`} role="status">
+              {message.text}
+            </p>
+          )}
+
+          <button type="submit" className={styles.submit} disabled={loading}>
+            {loading ? '처리 중...' : isSignUp ? '가입하기' : '로그인'}
+          </button>
+        </form>
+
+        <div className={styles.divider}>
+          <span>또는</span>
+        </div>
+
+        <button type="button" className={styles.guest} onClick={() => router.push('/')}>
+          로그인 없이 체험하기
         </button>
-      </form>
-
-      <p style={{ marginTop: '20px', fontSize: '14px', color: '#666', cursor: 'pointer' }} onClick={() => setIsSignUp(!isSignUp)}>
-        {isSignUp ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
-      </p>
-
-      <p style={{ marginTop: '8px', fontSize: '13px', color: '#999', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => router.push('/')}>
-        로그인 없이 체험하기
-      </p>
-    </main>
+      </main>
+    </div>
   );
 }

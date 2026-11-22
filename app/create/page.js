@@ -159,7 +159,7 @@ export default function CreateCharacterPage() {
       <div className={styles.layout}>
         <div>
           {isGuest && (
-            <GuestNotice onLogin={() => router.push('/login?mode=signup')} style={{ marginBottom: 16 }} />
+            <GuestNotice onLogin={() => router.push('/login?mode=signup')} />
           )}
 
           <form id="create-form" onSubmit={handleCreate} className={styles.form}>
@@ -252,7 +252,7 @@ export default function CreateCharacterPage() {
                 <span className={styles.step}>2</span> 성격과 말투
               </h2>
 
-              <div style={{ marginBottom: 20 }}>
+              <div className={styles.field}>
                 <label className={styles.label} htmlFor="personality">
                   성격<span className={styles.req}>*</span>
                   <span className={styles.optional}>여러 개 고를 수 있어요</span>
@@ -279,7 +279,7 @@ export default function CreateCharacterPage() {
                 </div>
               </div>
 
-              <div>
+              <div className={styles.field}>
                 <label className={styles.label} htmlFor="tone">
                   말투<span className={styles.req}>*</span>
                 </label>
@@ -310,7 +310,7 @@ export default function CreateCharacterPage() {
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>
                 <span className={styles.step}>3</span> 상세 설정
-                <span className={styles.optional} style={{ fontSize: 13 }}>선택</span>
+                <span className={styles.optional}>선택</span>
               </h2>
               <textarea
                 className={styles.textarea}

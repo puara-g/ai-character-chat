@@ -1,29 +1,8 @@
-.page {
-  --purple: #6c5ce7;
-  --purple-dark: #5b4bd8;
-  --purple-soft: #f1f0fe;
-  --purple-line: #d9d4fc;
-  --ink: #191f28;
-  --ink-2: #4e5968;
-  --muted: #8b95a1;
-  --line: #eceef1;
-  --surface: #ffffff;
-  --bg: #f4f5fb;
+/* 메인·둘러보기 공통. 값은 app/tokens.css 규칙만 사용 */
 
+.page {
   min-height: 100vh;
   background: var(--bg);
-  color: var(--ink);
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-}
-
-.page *,
-.page *::before,
-.page *::after {
-  box-sizing: border-box;
-}
-
-.page button {
-  font-family: inherit;
 }
 
 /* ---------- 헤더 ---------- */
@@ -33,24 +12,24 @@
   z-index: 10;
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .headerInner {
   max-width: 1040px;
   margin: 0 auto;
-  height: 60px;
-  padding: 0 16px;
+  height: 64px;
+  padding: 0 var(--space-4);
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 17px;
+  gap: var(--space-2);
+  font-size: var(--fs-lg);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -59,27 +38,27 @@
 }
 
 .brandMark {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #8e7ff5, #6c5ce7);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #8e7ff5, var(--purple));
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .nav {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   flex: 1;
 }
 
 .navLink {
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--muted);
   text-decoration: none;
@@ -97,18 +76,18 @@
 
 .headerBtn {
   border: none;
-  background: #f2f4f6;
+  background: var(--gray-1);
   color: var(--ink-2);
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 14px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .headerBtn:hover {
-  background: #e8ebee;
+  background: var(--gray-2);
 }
 
 .headerBtnPrimary {
@@ -124,21 +103,21 @@
 .container {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 28px 16px 64px;
+  padding: var(--space-8) var(--space-4) var(--space-16);
 }
 
 .hero {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
 .heroTitle {
-  margin: 0 0 6px;
-  font-size: 28px;
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-3xl);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.25;
@@ -146,7 +125,7 @@
 
 .heroSub {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--muted);
 }
 
@@ -154,12 +133,12 @@
   border: none;
   background: var(--purple);
   color: #fff;
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-size: 15px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-md);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(108, 92, 231, 0.25);
+  box-shadow: var(--shadow-primary);
   white-space: nowrap;
 }
 
@@ -168,36 +147,40 @@
 }
 
 .section {
-  margin-top: 36px;
+  margin-top: var(--space-12);
+}
+
+.sectionFirst {
+  margin-top: var(--space-6);
 }
 
 .sectionHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
 .sectionTitle {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .count {
   color: var(--purple);
-  margin-left: 6px;
+  margin-left: var(--space-2);
 }
 
 .moreLink {
   border: none;
   background: none;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .moreLink:hover {
@@ -206,31 +189,28 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: var(--space-4);
 }
 
 /* ---------- 캐릭터 카드 ---------- */
 .card {
   position: relative;
   background: var(--surface);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(30, 20, 90, 0.05);
+  box-shadow: var(--shadow-card);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   text-align: left;
-  border: none;
-  padding: 0;
-  width: 100%;
   color: inherit;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 14px 30px rgba(30, 20, 90, 0.1);
+  box-shadow: var(--shadow-hover);
 }
 
 .card:focus-visible {
@@ -244,26 +224,26 @@
 }
 
 .cardBody {
-  padding: 0 16px 16px;
+  padding: 0 var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .avatar {
-  width: 68px;
-  height: 68px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #fff;
   background: #fff;
-  margin-top: -34px;
+  margin-top: -32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .name {
-  margin: 8px 0 2px;
-  font-size: 17px;
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--fs-lg);
   font-weight: 800;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -272,25 +252,25 @@
 }
 
 .meta {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--muted);
-  min-height: 18px;
+  min-height: 20px;
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
 }
 
 .tag {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--purple);
   background: var(--purple-soft);
-  padding: 3px 9px;
-  border-radius: 999px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -299,12 +279,12 @@
 
 .tagTone {
   color: var(--ink-2);
-  background: #f2f4f6;
+  background: var(--gray-1);
 }
 
 .snippet {
-  margin: 10px 0 0;
-  font-size: 13px;
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--ink-2);
   display: -webkit-box;
@@ -315,48 +295,48 @@
 
 .cardFoot {
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .chatHint {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--purple);
 }
 
 .badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 11px;
+  top: var(--space-3);
+  right: var(--space-3);
+  font-size: var(--fs-xs);
   font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 999px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.9);
   color: var(--ink-2);
 }
 
 .badgeTemp {
-  background: #fff3d6;
-  color: #8a6a12;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
 .pill {
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .pill:hover {
@@ -364,9 +344,9 @@
 }
 
 .pillOn {
-  background: #e9f9ef;
-  border-color: #bfe8cf;
-  color: #1b8a4a;
+  background: var(--success-soft);
+  border-color: var(--success-line);
+  color: var(--success);
 }
 
 .dot {
@@ -380,30 +360,30 @@
   border: none;
   background: none;
   color: var(--muted);
-  font-size: 13px;
-  padding: 5px 6px;
-  border-radius: 8px;
+  font-size: var(--fs-sm);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .iconBtn:hover {
-  color: #f04452;
-  background: #fff0f1;
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* 새 캐릭터 타일 */
 .createTile {
   border: 2px dashed #d5d9f5;
   background: rgba(255, 255, 255, 0.5);
-  border-radius: 20px;
-  min-height: 220px;
+  border-radius: var(--radius-lg);
+  min-height: 224px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--purple);
-  font-size: 15px;
+  font-size: var(--fs-md);
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -416,18 +396,18 @@
 }
 
 .plus {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--purple);
   color: #fff;
-  font-size: 24px;
-  line-height: 44px;
+  font-size: var(--fs-2xl);
+  line-height: 48px;
   text-align: center;
 }
 
 .createSub {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--muted);
 }
@@ -435,17 +415,17 @@
 /* 빈 상태 / 로딩 */
 .empty {
   background: var(--surface);
-  border-radius: 20px;
-  padding: 40px 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-12) var(--space-5);
   text-align: center;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
 }
 
 .skeleton {
-  border-radius: 20px;
-  min-height: 220px;
+  border-radius: var(--radius-lg);
+  min-height: 224px;
   background: linear-gradient(90deg, #eceef3 25%, #f5f6f9 50%, #eceef3 75%);
   background-size: 200% 100%;
   animation: shimmer 1.2s infinite;
@@ -460,8 +440,8 @@
 /* 검색 */
 .toolbar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -469,34 +449,35 @@
 .search {
   flex: 1;
   min-width: 200px;
-  padding: 12px 14px 12px 40px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%238b95a1' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m13 13 4 4'/%3E%3C/svg%3E") no-repeat 13px center;
-  font-size: 15px;
-  font-family: inherit;
+  /* 왼쪽은 돋보기 아이콘 자리 */
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-8) + var(--space-2));
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%238b95a1' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m13 13 4 4'/%3E%3C/svg%3E") no-repeat 14px center;
+  font-size: var(--fs-md);
   color: var(--ink);
   outline: none;
 }
 
 .search:focus {
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+  box-shadow: var(--focus-ring);
 }
 
 .chips {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   flex-wrap: wrap;
+  margin-bottom: var(--space-6);
 }
 
 .chip {
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink-2);
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 13px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
   cursor: pointer;
 }
 
@@ -505,32 +486,37 @@
   color: var(--purple);
 }
 
-.chipOn {
+.chipOn,
+.chipOn:hover {
   background: var(--purple);
   border-color: var(--purple);
   color: #fff;
 }
 
-.chipOn:hover {
-  color: #fff;
-}
-
 @media (max-width: 640px) {
   .headerInner {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .brandText {
     display: none;
   }
 
+  .container {
+    padding-top: var(--space-6);
+  }
+
   .heroTitle {
-    font-size: 23px;
+    font-size: var(--fs-2xl);
+  }
+
+  .section {
+    margin-top: var(--space-8);
   }
 
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--space-3);
   }
 
   .snippet {
@@ -544,14 +530,14 @@
   }
 
   .cover {
-    height: 52px;
+    height: 48px;
   }
 
   .cardBody {
-    padding: 0 12px 12px;
+    padding: 0 var(--space-3) var(--space-3);
   }
 
   .createTile {
-    min-height: 180px;
+    min-height: 192px;
   }
 }
