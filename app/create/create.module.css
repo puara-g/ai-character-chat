@@ -70,7 +70,7 @@
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  box-shadow: var(--shadow-card);
+  border: var(--border-card);
 }
 
 .cardTitle {
@@ -260,7 +260,7 @@
 .segOn {
   background: #fff;
   color: var(--purple);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-raised);
 }
 
 .chips {
@@ -372,7 +372,7 @@
   background: var(--surface);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-hover);
+  border: var(--border-card);
 }
 
 .previewHead {
@@ -455,7 +455,7 @@
   border-radius: var(--space-1) var(--radius-lg) var(--radius-lg) var(--radius-lg);
   font-size: var(--fs-md);
   line-height: 1.5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: var(--border-card);
 }
 
 .previewFoot {
@@ -488,7 +488,6 @@
   font-size: var(--fs-lg);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-primary);
   transition: background 0.15s, transform 0.1s;
 }
 
@@ -502,7 +501,6 @@
 
 .submit:disabled {
   background: var(--purple-disabled);
-  box-shadow: none;
   cursor: not-allowed;
 }
 

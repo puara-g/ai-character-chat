@@ -19,7 +19,7 @@
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: var(--space-8) var(--space-6) var(--space-6);
-  box-shadow: var(--shadow-hover);
+  border: var(--border-card);
 }
 
 .brand {
@@ -82,7 +82,7 @@
 .tabOn {
   background: #fff;
   color: var(--purple);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-raised);
 }
 
 .form {
@@ -149,7 +149,6 @@
   font-size: var(--fs-md);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-primary);
   transition: background 0.15s;
 }
 
@@ -159,7 +158,6 @@
 
 .submit:disabled {
   background: var(--purple-disabled);
-  box-shadow: none;
   cursor: not-allowed;
 }
 
