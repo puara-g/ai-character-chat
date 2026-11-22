@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,13 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false); // 로그인 / 회원가입 모드 전환
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // "저장하려면 회원가입" 버튼으로 들어오면 회원가입 모드로 시작
+  useEffect(() => {
+    // 정적 페이지라 URL은 브라우저에서만 읽을 수 있어서 마운트 후 1회 설정
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (new URLSearchParams(window.location.search).get('mode') === 'signup') setIsSignUp(true);
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -64,6 +71,10 @@ export default function LoginPage() {
 
       <p style={{ marginTop: '20px', fontSize: '14px', color: '#666', cursor: 'pointer' }} onClick={() => setIsSignUp(!isSignUp)}>
         {isSignUp ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
+      </p>
+
+      <p style={{ marginTop: '8px', fontSize: '13px', color: '#999', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => router.push('/')}>
+        로그인 없이 체험하기
       </p>
     </main>
   );

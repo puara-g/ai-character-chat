@@ -3,6 +3,8 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages } from '@/lib/guest';
+import GuestNotice from '@/components/GuestNotice';
 
 // 💡 프로필 이미지가 없을 때 띄울 기본 이미지
 const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
@@ -24,7 +26,22 @@ export default function ChatPage({ params }) {
     }
   }, [characterId]);
 
+  const isGuest = isGuestId(characterId);
+
   const initChat = async () => {
+    // 체험 모드 캐릭터: 이 탭에 임시 저장된 데이터 사용
+    if (isGuest) {
+      const guestChar = getGuestCharacter(characterId);
+      if (!guestChar) {
+        alert('체험 모드 캐릭터는 창을 닫으면 사라져요.');
+        router.push('/');
+        return;
+      }
+      setCharacter(guestChar);
+      setMessages(getGuestMessages(characterId));
+      return;
+    }
+
     const { data: charData } = await supabase
       .from('characters')
       .select('*')
@@ -74,13 +91,21 @@ export default function ChatPage({ params }) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, sessionId, character }),
+        body: JSON.stringify({
+          message: userMsg,
+          sessionId,
+          character,
+          // 체험 모드는 DB에 대화가 없으니 이전 대화를 직접 보냄
+          history: isGuest ? messages.slice(-10) : undefined,
+        }),
       });
 
       const data = await res.json();
 
       if (data.reply) {
-        setMessages([...newMsgs, { sender: 'bot', content: data.reply }]);
+        const updated = [...newMsgs, { sender: 'bot', content: data.reply }];
+        setMessages(updated);
+        if (isGuest) setGuestMessages(characterId, updated);
       } else if (data.error) {
         alert(`오류 발생: ${data.error}`);
       }
@@ -133,6 +158,7 @@ export default function ChatPage({ params }) {
 
       {/* 대화 내역 영역 */}
       <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {isGuest && <GuestNotice onLogin={() => router.push('/login?mode=signup')} style={{ marginBottom: 0 }} />}
         {messages.map((m, i) => (
           <div
             key={i}

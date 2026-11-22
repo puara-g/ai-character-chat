@@ -3,8 +3,18 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { addGuestCharacter } from '@/lib/guest';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
+// 체험 모드에서는 이미지를 업로드하지 않고 data URL로 탭에 보관
+const readAsDataUrl = (file) =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
 
 export default function CreateCharacterPage() {
   const [name, setName] = useState('');
@@ -57,9 +67,12 @@ export default function CreateCharacterPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // 로그인 안 했으면 체험 모드: 이 탭에만 임시 저장
       if (!user) {
-        alert('로그인이 필요합니다.');
-        router.push('/login');
+        const avatarUrl = imageFile ? await readAsDataUrl(imageFile) : null;
+        addGuestCharacter({ name, gender, personality, tone, detail, avatar_url: avatarUrl });
+        router.push('/');
         return;
       }
 

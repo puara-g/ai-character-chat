@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { message, sessionId, character } = body;
+    const { message, sessionId, character, history: clientHistory } = body;
 
     if (!message || !character) {
       return Response.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
@@ -51,7 +51,19 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
           parts: [{ text: msg.content }],
         }));
       }
+    } else if (Array.isArray(clientHistory)) {
+      // 체험 모드(비로그인): 브라우저가 보낸 이전 대화 사용
+      history = clientHistory
+        .filter((msg) => msg && typeof msg.content === 'string')
+        .slice(-10)
+        .map((msg) => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content }],
+        }));
     }
+
+    // Gemini는 history가 user 메시지로 시작해야 함
+    while (history.length && history[0].role !== 'user') history.shift();
 
     const chat = model.startChat({ history });
     const result = await chat.sendMessage(message);

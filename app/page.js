@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
+import GuestNotice from '@/components/GuestNotice';
 
 const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
@@ -17,23 +19,30 @@ export default function HomePage() {
   }, []);
 
   const checkUserAndFetchCharacters = async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-    if (!currentUser) {
-      router.push('/login');
-      return;
+      // 로그인 안 했으면 체험 모드: 이 탭에 임시 저장된 캐릭터만 보여줌
+      if (!currentUser) {
+        setCharacters(getGuestCharacters());
+        return;
+      }
+
+      setUser(currentUser);
+
+      const { data: myCharacters } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (myCharacters) setCharacters(myCharacters);
+    } catch (err) {
+      console.error('사용자 확인 실패:', err);
+      setCharacters(getGuestCharacters());
+    } finally {
+      setLoading(false);
     }
-
-    setUser(currentUser);
-
-    const { data: myCharacters } = await supabase
-      .from('characters')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('created_at', { ascending: false });
-
-    if (myCharacters) setCharacters(myCharacters);
-    setLoading(false);
   };
 
   // 💡 캐릭터 삭제 처리 함수
@@ -42,6 +51,12 @@ export default function HomePage() {
     e.stopPropagation();
 
     if (!confirm(`'${charName}' 캐릭터를 삭제하시겠습니까?\n이 작업은 복구할 수 없습니다.`)) {
+      return;
+    }
+
+    if (isGuestId(charId)) {
+      removeGuestCharacter(charId);
+      setCharacters((prev) => prev.filter((char) => char.id !== charId));
       return;
     }
 
@@ -65,7 +80,8 @@ export default function HomePage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    setUser(null);
+    setCharacters(getGuestCharacters());
   };
 
   if (loading) return <p style={{ textAlign: 'center', marginTop: '50px' }}>로딩 중...</p>;
@@ -85,13 +101,15 @@ export default function HomePage() {
               + 캐릭터 만들기
             </button>
             <button
-              onClick={handleLogout}
+              onClick={user ? handleLogout : () => router.push('/login')}
               style={{ padding: '9px 14px', background: '#f2f4f6', color: '#4e5968', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
             >
-              로그아웃
+              {user ? '로그아웃' : '로그인'}
             </button>
           </div>
         </header>
+
+        {!user && <GuestNotice onLogin={() => router.push('/login?mode=signup')} />}
 
         {/* 캐릭터 목록 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
