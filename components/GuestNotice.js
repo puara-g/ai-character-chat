@@ -1,7 +1,7 @@
 'use client';
 
 // 로그인하지 않은 사용자에게 "저장하려면 회원가입" 안내
-export default function GuestNotice({ onLogin, style }) {
+export default function GuestNotice({ onLogin, style, what = '만든 캐릭터와 대화는' }) {
   return (
     <div
       style={{
@@ -21,7 +21,7 @@ export default function GuestNotice({ onLogin, style }) {
       }}
     >
       <span>
-        체험 중이에요. 만든 캐릭터와 대화는 <b>창을 닫으면 사라져요.</b>
+        체험 중이에요. {what} <b>창을 닫으면 사라져요.</b>
         <br />
         저장하려면 회원가입해 주세요.
       </span>

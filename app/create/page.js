@@ -43,6 +43,7 @@ export default function CreateCharacterPage() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export default function CreateCharacterPage() {
 
       const { data: created, error: dbError } = await supabase
         .from('characters')
-        .insert([{ ...profile, avatar_url: avatarUrl, user_id: user.id }])
+        .insert([{ ...profile, avatar_url: avatarUrl, user_id: user.id, is_public: isPublic }])
         .select('id')
         .single();
 
@@ -322,6 +323,26 @@ export default function CreateCharacterPage() {
                 {detail.length} / {MAX_DETAIL}
               </div>
             </section>
+
+            {/* 4. 공개 설정 (로그인한 사용자만) */}
+            {!isGuest && (
+              <section className={styles.card}>
+                <label className={styles.switchRow}>
+                  <span>
+                    <span className={styles.switchTitle}>둘러보기에 공개</span>
+                    <span className={styles.switchDesc}>
+                      다른 사람도 이 캐릭터와 대화할 수 있어요. 대화 내용은 각자만 볼 수 있어요.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className={styles.switch}
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                  />
+                </label>
+              </section>
+            )}
           </form>
         </div>
 

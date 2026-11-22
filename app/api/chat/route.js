@@ -1,14 +1,15 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from '@/lib/supabase';
 
 const genAI = new GoogleGenerativeAI(
   process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY
 );
 
+// 대화 저장은 브라우저(로그인한 사용자 권한)에서 하고,
+// 이 API는 받은 캐릭터 설정과 최근 대화로 답장만 만든다.
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { message, sessionId, character, history: clientHistory } = body;
+    const { message, character, history: clientHistory } = body;
 
     if (!message || !character) {
       return Response.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
@@ -36,31 +37,13 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
       systemInstruction: systemInstruction,
     });
 
-    let history = [];
-    if (sessionId) {
-      const { data: previousMessages } = await supabase
-        .from('messages')
-        .select('sender, content')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true })
-        .limit(10);
-
-      if (previousMessages && previousMessages.length > 0) {
-        history = previousMessages.map((msg) => ({
-          role: msg.sender === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }],
-        }));
-      }
-    } else if (Array.isArray(clientHistory)) {
-      // 체험 모드(비로그인): 브라우저가 보낸 이전 대화 사용
-      history = clientHistory
-        .filter((msg) => msg && typeof msg.content === 'string')
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.sender === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }],
-        }));
-    }
+    const history = (Array.isArray(clientHistory) ? clientHistory : [])
+      .filter((msg) => msg && typeof msg.content === 'string')
+      .slice(-10)
+      .map((msg) => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      }));
 
     // Gemini는 history가 user 메시지로 시작해야 함
     while (history.length && history[0].role !== 'user') history.shift();
@@ -68,17 +51,6 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
     const chat = model.startChat({ history });
     const result = await chat.sendMessage(message);
     const botReply = result.response.text();
-
-    if (sessionId && botReply) {
-      try {
-        await supabase.from('messages').insert([
-          { session_id: sessionId, sender: 'user', content: message },
-          { session_id: sessionId, sender: 'bot', content: botReply },
-        ]);
-      } catch (dbErr) {
-        console.error('DB 저장 오류 (무시 가능):', dbErr);
-      }
-    }
 
     return Response.json({ reply: botReply });
   } catch (error) {

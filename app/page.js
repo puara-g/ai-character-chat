@@ -5,76 +5,97 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
 import GuestNotice from '@/components/GuestNotice';
+import AppHeader from '@/components/AppHeader';
+import CharacterCard from '@/components/CharacterCard';
+import styles from '@/components/browse.module.css';
 
-const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+const PUBLIC_PREVIEW_COUNT = 8;
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
   const [characters, setCharacters] = useState([]);
+  const [publicCharacters, setPublicCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    checkUserAndFetchCharacters();
-  }, []);
+  const loadPublic = async (me) => {
+    const { data, error } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(PUBLIC_PREVIEW_COUNT + 8);
+    if (error) {
+      console.error('공개 캐릭터 불러오기 실패:', error);
+      return;
+    }
+    setPublicCharacters((data || []).filter((c) => !me || c.user_id !== me.id).slice(0, PUBLIC_PREVIEW_COUNT));
+  };
 
-  const checkUserAndFetchCharacters = async () => {
+  const load = async () => {
+    let me = null;
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-      // 로그인 안 했으면 체험 모드: 이 탭에 임시 저장된 캐릭터만 보여줌
-      if (!currentUser) {
-        setCharacters(getGuestCharacters());
-        return;
-      }
-
-      setUser(currentUser);
-
-      const { data: myCharacters } = await supabase
-        .from('characters')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-
-      if (myCharacters) setCharacters(myCharacters);
+      const { data } = await supabase.auth.getUser();
+      me = data?.user || null;
     } catch (err) {
       console.error('사용자 확인 실패:', err);
-      setCharacters(getGuestCharacters());
+    }
+    setUser(me);
+
+    try {
+      if (me) {
+        const { data: mine } = await supabase
+          .from('characters')
+          .select('*')
+          .eq('user_id', me.id)
+          .order('created_at', { ascending: false });
+        setCharacters(mine || []);
+      } else {
+        // 로그인 안 했으면 체험 모드: 이 탭에 임시 저장된 캐릭터만
+        setCharacters(getGuestCharacters());
+      }
+      await loadPublic(me);
+    } catch (err) {
+      console.error('캐릭터 불러오기 실패:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // 💡 캐릭터 삭제 처리 함수
-  const handleDeleteCharacter = async (e, charId, charName) => {
-    // 카드를 클릭했을 때 채팅방으로 이동하지 않도록 이벤트 전파 막기
+  useEffect(() => {
+    // 마운트 시 1회 데이터 불러오기 (외부 저장소와 동기화)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleDelete = async (e, char) => {
     e.stopPropagation();
+    if (!confirm(`'${char.name}' 캐릭터를 삭제할까요?\n이 작업은 되돌릴 수 없어요.`)) return;
 
-    if (!confirm(`'${charName}' 캐릭터를 삭제하시겠습니까?\n이 작업은 복구할 수 없습니다.`)) {
+    if (isGuestId(char.id)) {
+      removeGuestCharacter(char.id);
+      setCharacters((prev) => prev.filter((c) => c.id !== char.id));
       return;
     }
 
-    if (isGuestId(charId)) {
-      removeGuestCharacter(charId);
-      setCharacters((prev) => prev.filter((char) => char.id !== charId));
+    const { error } = await supabase.from('characters').delete().eq('id', char.id);
+    if (error) {
+      alert(`삭제 중 오류가 발생했어요: ${error.message}`);
       return;
     }
+    setCharacters((prev) => prev.filter((c) => c.id !== char.id));
+  };
 
-    try {
-      // 1. characters 테이블에서 해당 ID 삭제
-      const { error } = await supabase
-        .from('characters')
-        .delete()
-        .eq('id', charId);
+  const handleTogglePublic = async (e, char) => {
+    e.stopPropagation();
+    const next = !char.is_public;
+    setCharacters((prev) => prev.map((c) => (c.id === char.id ? { ...c, is_public: next } : c)));
 
-      if (error) throw error;
-
-      // 2. 화면 UI에서도 해당 캐릭터 제거
-      setCharacters((prev) => prev.filter((char) => char.id !== charId));
-      alert('캐릭터가 삭제되었습니다.');
-    } catch (err) {
-      console.error('삭제 실패:', err);
-      alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
+    const { error } = await supabase.from('characters').update({ is_public: next }).eq('id', char.id);
+    if (error) {
+      setCharacters((prev) => prev.map((c) => (c.id === char.id ? { ...c, is_public: !next } : c)));
+      alert(`공개 설정을 바꾸지 못했어요: ${error.message}`);
     }
   };
 
@@ -82,145 +103,119 @@ export default function HomePage() {
     await supabase.auth.signOut();
     setUser(null);
     setCharacters(getGuestCharacters());
+    loadPublic(null);
   };
 
-  if (loading) return <p style={{ textAlign: 'center', marginTop: '50px' }}>로딩 중...</p>;
+  const ownerFooter = (char) => {
+    const guest = isGuestId(char.id);
+    return (
+      <>
+        {guest ? (
+          <span className={styles.chatHint}>대화하기 →</span>
+        ) : (
+          <button
+            type="button"
+            className={`${styles.pill} ${char.is_public ? styles.pillOn : ''}`}
+            onClick={(e) => handleTogglePublic(e, char)}
+            title={char.is_public ? '눌러서 비공개로 바꾸기' : '눌러서 둘러보기에 공개하기'}
+          >
+            <span className={styles.dot} />
+            {char.is_public ? '공개 중' : '비공개'}
+          </button>
+        )}
+        <button
+          type="button"
+          className={styles.iconBtn}
+          onClick={(e) => handleDelete(e, char)}
+          aria-label={`${char.name} 삭제`}
+        >
+          삭제
+        </button>
+      </>
+    );
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '40px 20px' }}>
-      <main style={{ maxWidth: '520px', margin: '0 auto' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h3 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#191f28' }}>
-            내 AI 캐릭터 <span style={{ color: '#6c5ce7' }}>{characters.length}</span>
-          </h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => router.push('/create')}
-              style={{ padding: '9px 16px', background: '#6c5ce7', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(108, 92, 231, 0.2)' }}
-            >
-              + 캐릭터 만들기
-            </button>
-            <button
-              onClick={user ? handleLogout : () => router.push('/login')}
-              style={{ padding: '9px 14px', background: '#f2f4f6', color: '#4e5968', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-            >
-              {user ? '로그아웃' : '로그인'}
+    <div className={styles.page}>
+      <AppHeader user={user} onLogout={handleLogout} />
+
+      <main className={styles.container}>
+        <div className={styles.hero}>
+          <div>
+            <h1 className={styles.heroTitle}>오늘은 누구랑 이야기할까요?</h1>
+            <p className={styles.heroSub}>
+              {user ? '내가 만든 캐릭터와 대화하거나, 다른 사람들의 캐릭터를 만나보세요.' : '로그인 없이도 캐릭터를 만들고 대화할 수 있어요.'}
+            </p>
+          </div>
+          <button type="button" className={styles.primaryBtn} onClick={() => router.push('/create')}>
+            + 새 캐릭터
+          </button>
+        </div>
+
+        {!loading && !user && <GuestNotice onLogin={() => router.push('/login?mode=signup')} />}
+
+        {/* 내 캐릭터 */}
+        <section className={styles.section} style={{ marginTop: 24 }}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>
+              내 캐릭터{!loading && <span className={styles.count}>{characters.length}</span>}
+            </h2>
+          </div>
+
+          <div className={styles.grid}>
+            {loading ? (
+              [0, 1, 2].map((i) => <div key={i} className={styles.skeleton} />)
+            ) : (
+              <>
+                <button type="button" className={styles.createTile} onClick={() => router.push('/create')}>
+                  <span className={styles.plus}>+</span>
+                  새 캐릭터 만들기
+                  <span className={styles.createSub}>성격과 말투를 정해 주세요</span>
+                </button>
+                {characters.map((char) => (
+                  <CharacterCard
+                    key={char.id}
+                    character={char}
+                    onOpen={() => router.push(`/chat/${char.id}`)}
+                    badge={isGuestId(char.id) ? '임시' : null}
+                    badgeTone="temp"
+                    footer={ownerFooter(char)}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* 다른 사람들의 캐릭터 */}
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>다른 사람들의 캐릭터</h2>
+            <button type="button" className={styles.moreLink} onClick={() => router.push('/explore')}>
+              전체 보기 →
             </button>
           </div>
-        </header>
 
-        {!user && <GuestNotice onLogin={() => router.push('/login?mode=signup')} />}
-
-        {/* 캐릭터 목록 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {characters.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#8b95a1', background: '#fff', borderRadius: '20px', border: '1px solid #f2f4f6' }}>
-              <p style={{ marginBottom: '16px', fontSize: '15px' }}>아직 만든 AI 캐릭터가 없습니다.</p>
-              <button
-                onClick={() => router.push('/create')}
-                style={{ padding: '10px 18px', background: '#6c5ce7', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                새 캐릭터 추가하기
-              </button>
+          {loading ? (
+            <div className={styles.grid}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className={styles.skeleton} />
+              ))}
+            </div>
+          ) : publicCharacters.length ? (
+            <div className={styles.grid}>
+              {publicCharacters.map((char) => (
+                <CharacterCard key={char.id} character={char} onOpen={() => router.push(`/chat/${char.id}`)} />
+              ))}
             </div>
           ) : (
-            characters.map((char) => {
-              const avatarSrc = char.avatar_url || DEFAULT_AVATAR;
-
-              return (
-                <div
-                  key={char.id}
-                  onClick={() => router.push(`/chat/${char.id}`)}
-                  style={{
-                    padding: '16px 20px',
-                    background: '#ffffff',
-                    border: '1px solid #f2f4f6',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                  }}
-                >
-                  {/* 프로필 이미지 */}
-                  <img
-                    src={avatarSrc}
-                    alt={char.name}
-                    onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '1px solid #e5e8eb',
-                      flexShrink: 0,
-                    }}
-                  />
-
-                  {/* 캐릭터 정보 영역 */}
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#191f28' }}>
-                        {char.name}
-                      </h4>
-                      
-                      {/* 💡 삭제 버튼 영역 */}
-                      <button
-                        onClick={(e) => handleDeleteCharacter(e, char.id, char.name)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#8b95a1',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          transition: 'color 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => e.target.style.color = '#f04452'}
-                        onMouseLeave={(e) => e.target.style.color = '#8b95a1'}
-                        title="캐릭터 삭제"
-                      >
-                        🗑️ 삭제
-                      </button>
-                    </div>
-
-                    {/* 태그 영역 */}
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          color: '#6c5ce7',
-                          background: '#f1f0fe',
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                        }}
-                      >
-                        {char.personality}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#4e5968',
-                          background: '#f2f4f6',
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                        }}
-                      >
-                        {char.tone}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            <div className={styles.empty}>
+              아직 공개된 캐릭터가 없어요.
+              <br />
+              {user ? '내 캐릭터를 공개해서 첫 번째 주인공이 되어 보세요!' : '회원가입하고 캐릭터를 공개해 보세요!'}
+            </div>
           )}
-        </div>
+        </section>
       </main>
     </div>
   );

@@ -19,28 +19,28 @@ export default function ChatPage({ params }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (characterId) {
-      initChat();
-    }
-  }, [characterId]);
-
-  const isGuest = isGuestId(characterId);
+  // 로그인 안 했으면 대화를 이 탭에만 임시 보관 (체험 캐릭터든 공개 캐릭터든)
+  const [isGuest, setIsGuest] = useState(false);
 
   const initChat = async () => {
     // 체험 모드 캐릭터: 이 탭에 임시 저장된 데이터 사용
-    if (isGuest) {
+    if (isGuestId(characterId)) {
       const guestChar = getGuestCharacter(characterId);
       if (!guestChar) {
         alert('체험 모드 캐릭터는 창을 닫으면 사라져요.');
         router.push('/');
         return;
       }
+      setIsGuest(true);
       setCharacter(guestChar);
       setMessages(getGuestMessages(characterId));
       return;
     }
+
+    let user = null;
+    try {
+      ({ data: { user } } = await supabase.auth.getUser());
+    } catch {}
 
     const { data: charData } = await supabase
       .from('characters')
@@ -48,18 +48,33 @@ export default function ChatPage({ params }) {
       .eq('id', characterId)
       .maybeSingle();
 
-    if (charData) setCharacter(charData);
+    if (!charData) {
+      alert('캐릭터를 찾을 수 없어요. 비공개로 바뀌었거나 삭제됐을 수 있어요.');
+      router.push('/');
+      return;
+    }
+    setCharacter(charData);
 
+    if (!user) {
+      setIsGuest(true);
+      setMessages(getGuestMessages(characterId));
+      return;
+    }
+
+    // 대화방은 사용자마다 따로
     let { data: session } = await supabase
       .from('chat_sessions')
       .select('*')
       .eq('character_id', characterId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (!session) {
       const { data: newSession } = await supabase
         .from('chat_sessions')
-        .insert([{ character_id: characterId }])
+        .insert([{ character_id: characterId, user_id: user.id }])
         .select()
         .single();
       session = newSession;
@@ -78,6 +93,13 @@ export default function ChatPage({ params }) {
     }
   };
 
+  useEffect(() => {
+    // 마운트 시 1회 데이터 불러오기 (외부 저장소와 동기화)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (characterId) initChat();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterId]);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg = input;
@@ -93,10 +115,8 @@ export default function ChatPage({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg,
-          sessionId,
           character,
-          // 체험 모드는 DB에 대화가 없으니 이전 대화를 직접 보냄
-          history: isGuest ? messages.slice(-10) : undefined,
+          history: messages.slice(-10),
         }),
       });
 
@@ -105,7 +125,15 @@ export default function ChatPage({ params }) {
       if (data.reply) {
         const updated = [...newMsgs, { sender: 'bot', content: data.reply }];
         setMessages(updated);
-        if (isGuest) setGuestMessages(characterId, updated);
+        if (sessionId) {
+          const { error } = await supabase.from('messages').insert([
+            { session_id: sessionId, sender: 'user', content: userMsg },
+            { session_id: sessionId, sender: 'bot', content: data.reply },
+          ]);
+          if (error) console.error('대화 저장 실패:', error);
+        } else {
+          setGuestMessages(characterId, updated);
+        }
       } else if (data.error) {
         alert(`오류 발생: ${data.error}`);
       }
@@ -158,7 +186,13 @@ export default function ChatPage({ params }) {
 
       {/* 대화 내역 영역 */}
       <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {isGuest && <GuestNotice onLogin={() => router.push('/login?mode=signup')} style={{ marginBottom: 0 }} />}
+        {isGuest && (
+          <GuestNotice
+            what="이 대화는"
+            onLogin={() => router.push('/login?mode=signup')}
+            style={{ marginBottom: 0 }}
+          />
+        )}
         {messages.map((m, i) => (
           <div
             key={i}
