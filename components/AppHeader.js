@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import styles from './browse.module.css';
 
@@ -17,7 +18,9 @@ export default function AppHeader({ user, onLogout }) {
     <header className={styles.header}>
       <div className={styles.headerInner}>
         <Link href="/" className={styles.brand}>
-          <span className={styles.brandMark}>💬</span>
+          <span className={styles.brandMark}>
+            <MessageCircle size={18} strokeWidth={2.4} aria-hidden="true" />
+          </span>
           <span className={styles.brandText}>AI 캐릭터</span>
         </Link>
 

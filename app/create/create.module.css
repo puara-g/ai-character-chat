@@ -16,6 +16,9 @@
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   border: none;
   background: none;
   font-size: var(--fs-md);
@@ -140,8 +143,7 @@
 
 .avatarIcon {
   display: block;
-  font-size: var(--fs-2xl);
-  margin-bottom: var(--space-1);
+  margin: 0 auto var(--space-1);
 }
 
 .avatarHint {

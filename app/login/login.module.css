@@ -41,7 +41,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--fs-lg);
+  color: #fff;
 }
 
 .title {

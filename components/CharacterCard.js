@@ -1,6 +1,7 @@
 'use client';
 
 import styles from './browse.module.css';
+import { ArrowRight } from 'lucide-react';
 
 export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
@@ -67,7 +68,13 @@ export default function CharacterCard({ character, onOpen, badge, badgeTone, foo
 
         {character.detail && <p className={styles.snippet}>{character.detail}</p>}
 
-        <div className={styles.cardFoot}>{footer || <span className={styles.chatHint}>대화하기 →</span>}</div>
+        <div className={styles.cardFoot}>
+          {footer || (
+            <span className={styles.chatHint}>
+              대화하기 <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -71,6 +72,8 @@ export default function ExplorePage() {
         </div>
 
         <div className={styles.toolbar}>
+          <label className={styles.searchWrap}>
+          <Search className={styles.searchIcon} size={18} aria-hidden="true" />
           <input
             className={styles.search}
             type="search"
@@ -79,6 +82,7 @@ export default function ExplorePage() {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="캐릭터 검색"
           />
+          </label>
         </div>
         <div className={styles.chips}>
           {FILTERS.map((f) => (
@@ -122,7 +126,7 @@ export default function ExplorePage() {
               style={{ marginTop: 'var(--space-2)', color: 'var(--purple)' }}
               onClick={() => router.push('/create')}
             >
-              내 캐릭터 만들어서 공개하기 →
+              내 캐릭터 만들어서 공개하기 <ArrowRight size={14} aria-hidden="true" />
             </button>
           </div>
         )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, use } from 'react';
+import { ArrowLeft, ArrowUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages } from '@/lib/guest';
@@ -180,7 +181,7 @@ export default function ChatPage({ params }) {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <button type="button" className={styles.back} onClick={() => router.push('/')} aria-label="목록으로">
-            ←
+            <ArrowLeft size={20} aria-hidden="true" />
           </button>
           <img
             className={styles.headerAvatar}
@@ -272,9 +273,7 @@ export default function ChatPage({ params }) {
             aria-label="메시지"
           />
           <button type="submit" className={styles.send} disabled={!canSend} aria-label="보내기">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
+            <ArrowUp size={20} strokeWidth={2.4} aria-hidden="true" />
           </button>
         </div>
       </form>

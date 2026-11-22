@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
@@ -111,7 +112,9 @@ export default function HomePage() {
     return (
       <>
         {guest ? (
-          <span className={styles.chatHint}>대화하기 →</span>
+          <span className={styles.chatHint}>
+            대화하기 <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />
+          </span>
         ) : (
           <button
             type="button"
@@ -129,6 +132,7 @@ export default function HomePage() {
           onClick={(e) => handleDelete(e, char)}
           aria-label={`${char.name} 삭제`}
         >
+          <Trash2 size={14} aria-hidden="true" />
           삭제
         </button>
       </>
@@ -148,7 +152,8 @@ export default function HomePage() {
             </p>
           </div>
           <button type="button" className={styles.primaryBtn} onClick={() => router.push('/create')}>
-            + 새 캐릭터
+            <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
+            새 캐릭터
           </button>
         </div>
 
@@ -168,7 +173,9 @@ export default function HomePage() {
             ) : (
               <>
                 <button type="button" className={styles.createTile} onClick={() => router.push('/create')}>
-                  <span className={styles.plus}>+</span>
+                  <span className={styles.plus}>
+                    <Plus size={24} strokeWidth={2.4} aria-hidden="true" />
+                  </span>
                   새 캐릭터 만들기
                   <span className={styles.createSub}>성격과 말투를 정해 주세요</span>
                 </button>
@@ -192,7 +199,7 @@ export default function HomePage() {
           <div className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>다른 사람들의 캐릭터</h2>
             <button type="button" className={styles.moreLink} onClick={() => router.push('/explore')}>
-              전체 보기 →
+              전체 보기 <ArrowRight size={14} aria-hidden="true" />
             </button>
           </div>
 

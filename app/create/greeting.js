@@ -85,7 +85,7 @@ export const greetingFor = (name, tone, personalityTags) => {
       return (
         `안뇽~ 나는 ${n}${b ? '이야' : '야'}! ${lines.ban}`
           .replace(/\?!/g, '?')
-          .replace(/(?<!\?)[.!]+(?=\s|$)/g, '~') + ' 💕'
+          .replace(/(?<!\?)[.!]+(?=\s|$)/g, '~')
       );
     case 'blunt':
       return `${n}${b ? '이야' : '야'}. ${lines.ban}`

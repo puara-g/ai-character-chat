@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -65,7 +66,9 @@ export default function LoginPage() {
     <div className={styles.page}>
       <main className={styles.card}>
         <Link href="/" className={styles.brand}>
-          <span className={styles.brandMark}>💬</span>
+          <span className={styles.brandMark}>
+            <MessageCircle size={18} strokeWidth={2.4} aria-hidden="true" />
+          </span>
           AI 캐릭터
         </Link>
 

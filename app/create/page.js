@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ArrowLeft, Camera } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { addGuestCharacter } from '@/lib/guest';
@@ -147,7 +148,8 @@ export default function CreateCharacterPage() {
     <div className={styles.page}>
       <div className={styles.topbar}>
         <button type="button" className={styles.back} onClick={() => router.push('/')}>
-          ← 목록으로
+          <ArrowLeft size={16} aria-hidden="true" />
+          목록으로
         </button>
       </div>
 
@@ -179,7 +181,7 @@ export default function CreateCharacterPage() {
                       <img src={previewUrl} alt="프로필 미리보기" />
                     ) : (
                       <span>
-                        <span className={styles.avatarIcon}>📷</span>
+                        <Camera className={styles.avatarIcon} size={24} aria-hidden="true" />
                         사진 추가
                       </span>
                     )}
