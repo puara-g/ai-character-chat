@@ -167,31 +167,37 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className={styles.grid}>
-            {loading ? (
-              [0, 1, 2].map((i) => <div key={i} className={styles.skeleton} />)
-            ) : (
-              <>
-                <button type="button" className={styles.createTile} onClick={() => router.push('/create')}>
-                  <span className={styles.plus}>
-                    <Plus size={24} strokeWidth={2.4} aria-hidden="true" />
-                  </span>
-                  새 캐릭터 만들기
-                  <span className={styles.createSub}>성격과 말투를 정해 주세요</span>
-                </button>
-                {characters.map((char) => (
-                  <CharacterCard
-                    key={char.id}
-                    character={char}
-                    onOpen={() => router.push(`/chat/${char.id}`)}
-                    badge={isGuestId(char.id) ? '임시' : null}
-                    badgeTone="temp"
-                    footer={ownerFooter(char)}
-                  />
-                ))}
-              </>
-            )}
-          </div>
+          {loading ? (
+            <div className={styles.grid}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={styles.skeleton} />
+              ))}
+            </div>
+          ) : characters.length ? (
+            <div className={styles.grid}>
+              {characters.map((char) => (
+                <CharacterCard
+                  key={char.id}
+                  character={char}
+                  onOpen={() => router.push(`/chat/${char.id}`)}
+                  badge={isGuestId(char.id) ? '임시' : null}
+                  badgeTone="temp"
+                  footer={ownerFooter(char)}
+                />
+              ))}
+            </div>
+          ) : (
+            <button type="button" className={styles.createCard} onClick={() => router.push('/create')}>
+              <span className={styles.plus}>
+                <Plus size={20} strokeWidth={2.4} aria-hidden="true" />
+              </span>
+              <span className={styles.createText}>
+                <span className={styles.createTitle}>첫 캐릭터를 만들어 보세요</span>
+                <span className={styles.createSub}>이름, 성격, 말투만 정하면 바로 대화할 수 있어요</span>
+              </span>
+              <ArrowRight className={styles.createArrow} size={18} aria-hidden="true" />
+            </button>
+          )}
         </section>
 
         {/* 다른 사람들의 캐릭터 */}
