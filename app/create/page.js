@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { addGuestCharacter } from '@/lib/guest';
+import GuestNotice from '@/components/GuestNotice';
+import styles from './create.module.css';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_DETAIL = 500;
+const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+const GENDERS = ['여성', '남성', '기타'];
+const PERSONALITY_PRESETS = ['다정함', '츤데레', '장난기 많음', '시크함', '수줍음', '활발함', '지적임', '엉뚱함'];
+const TONE_PRESETS = ['친근한 반말', '차분한 존댓말', '귀여운 말투', '무뚝뚝한 말투', '능글맞은 말투', '사투리'];
 
 // 체험 모드에서는 이미지를 업로드하지 않고 data URL로 탭에 보관
 const readAsDataUrl = (file) =>
@@ -16,34 +24,74 @@ const readAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+// 이름 끝 글자에 받침이 있는지 (이야/야, 이에요/예요 고르기)
+const hasBatchim = (word) => {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  return code >= 0 && code <= 11171 && code % 28 !== 0;
+};
+
+const splitTags = (text) =>
+  text
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+const greetingFor = (name, tone) => {
+  const n = name.trim() || '캐릭터';
+  if (/존댓|존대|요체/.test(tone)) {
+    return `안녕하세요! 저는 ${n}${hasBatchim(n) ? '이에요' : '예요'}. 만나서 반가워요 😊`;
+  }
+  return `안녕! 나는 ${n}${hasBatchim(n) ? '이야' : '야'}. 우리 얘기 많이 하자!`;
+};
+
 export default function CreateCharacterPage() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState('여성');
+  const [age, setAge] = useState('');
   const [personality, setPersonality] = useState('');
   const [tone, setTone] = useState('');
   const [detail, setDetail] = useState('');
   const [imageFile, setImageFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null); // 💡 이미지 미리보기 URL
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const router = useRouter();
 
-  // 파일 선택 및 미리보기 생성
+  useEffect(() => {
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setIsGuest(!data?.user))
+      .catch(() => setIsGuest(true));
+  }, []);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
-
-    if (file.size > MAX_FILE_SIZE) {
-      alert('이미지 크기는 2MB 이하만 업로드 가능합니다.');
-      return;
-    }
 
     if (!file.type.startsWith('image/')) {
       alert('이미지 파일만 업로드 가능합니다.');
       return;
     }
+    if (file.size > MAX_FILE_SIZE) {
+      alert('이미지 크기는 2MB 이하만 업로드 가능합니다.');
+      return;
+    }
 
     setImageFile(file);
-    setPreviewUrl(URL.createObjectURL(file)); // 이미지 미리보기 세팅
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setPreviewUrl(null);
+  };
+
+  // 성격 칩: 여러 개 선택 (쉼표로 구분된 입력값에 추가/제거)
+  const togglePersonality = (preset) => {
+    const tags = splitTags(personality);
+    const next = tags.includes(preset) ? tags.filter((t) => t !== preset) : [...tags, preset];
+    setPersonality(next.join(', '));
   };
 
   const uploadAvatarImage = async (file) => {
@@ -51,10 +99,7 @@ export default function CreateCharacterPage() {
     const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
     const filePath = `profiles/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file);
-
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
     if (uploadError) throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
@@ -65,38 +110,37 @@ export default function CreateCharacterPage() {
     e.preventDefault();
     setLoading(true);
 
+    const profile = {
+      name: name.trim(),
+      gender,
+      age: age.trim() || null,
+      personality: personality.trim(),
+      tone: tone.trim(),
+      detail: detail.trim(),
+    };
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
       // 로그인 안 했으면 체험 모드: 이 탭에만 임시 저장
       if (!user) {
         const avatarUrl = imageFile ? await readAsDataUrl(imageFile) : null;
-        addGuestCharacter({ name, gender, personality, tone, detail, avatar_url: avatarUrl });
-        router.push('/');
+        const created = addGuestCharacter({ ...profile, avatar_url: avatarUrl });
+        router.push(`/chat/${created.id}`);
         return;
       }
 
-      let avatarUrl = null;
-      if (imageFile) {
-        avatarUrl = await uploadAvatarImage(imageFile);
-      }
+      const avatarUrl = imageFile ? await uploadAvatarImage(imageFile) : null;
 
-      const { error: dbError } = await supabase.from('characters').insert([
-        {
-          name,
-          gender,
-          personality,
-          tone,
-          detail,
-          avatar_url: avatarUrl,
-          user_id: user.id,
-        },
-      ]);
+      const { data: created, error: dbError } = await supabase
+        .from('characters')
+        .insert([{ ...profile, avatar_url: avatarUrl, user_id: user.id }])
+        .select('id')
+        .single();
 
       if (dbError) throw new Error(`생성 실패: ${dbError.message}`);
 
-      router.push('/');
-      router.refresh();
+      router.push(created?.id ? `/chat/${created.id}` : '/');
     } catch (error) {
       console.error(error);
       alert(error.message || '오류가 발생했습니다.');
@@ -105,157 +149,233 @@ export default function CreateCharacterPage() {
     }
   };
 
+  const personalityTags = splitTags(personality);
+  const avatarSrc = previewUrl || DEFAULT_AVATAR;
+  const meta = [gender, age.trim() && `${age.trim()}살`].filter(Boolean).join(' · ');
+  const canSubmit = name.trim() && personality.trim() && tone.trim() && !loading;
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '40px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <main
-        style={{
-          width: '100%',
-          maxWidth: '460px',
-          background: '#ffffff',
-          borderRadius: '20px',
-          padding: '32px 28px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#191f28', margin: '0 0 6px 0' }}>
-            새 AI 캐릭터 만들기 ✨
-          </h2>
-          <p style={{ fontSize: '14px', color: '#8b95a1', margin: 0 }}>
-            나만의 특별한 AI 친구의 프로필을 설정해 보세요.
-          </p>
+    <div className={styles.page}>
+      <div className={styles.topbar}>
+        <button type="button" className={styles.back} onClick={() => router.push('/')}>
+          ← 목록으로
+        </button>
+      </div>
+
+      <div className={styles.intro}>
+        <h1 className={styles.heading}>새 캐릭터 만들기</h1>
+        <p className={styles.sub}>어떤 친구와 대화하고 싶은지 알려주세요. 입력하는 대로 미리보기에 바로 보여요.</p>
+      </div>
+
+      <div className={styles.layout}>
+        <div>
+          {isGuest && (
+            <GuestNotice onLogin={() => router.push('/login?mode=signup')} style={{ marginBottom: 16 }} />
+          )}
+
+          <form id="create-form" onSubmit={handleCreate} className={styles.form}>
+            {/* 1. 기본 프로필 */}
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>
+                <span className={styles.step}>1</span> 기본 프로필
+              </h2>
+
+              <div className={styles.profileRow}>
+                <div className={styles.avatarBox}>
+                  <label
+                    htmlFor="avatar-upload"
+                    className={`${styles.avatar} ${previewUrl ? styles.avatarFilled : ''}`}
+                  >
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="프로필 미리보기" />
+                    ) : (
+                      <span>
+                        <span className={styles.avatarIcon}>📷</span>
+                        사진 추가
+                      </span>
+                    )}
+                  </label>
+                  <input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} hidden />
+                  {previewUrl ? (
+                    <button type="button" className={styles.linkBtn} onClick={removeImage}>
+                      사진 지우기
+                    </button>
+                  ) : (
+                    <span className={styles.avatarHint}>2MB 이하</span>
+                  )}
+                </div>
+
+                <div className={styles.fields}>
+                  <div className={styles.row2}>
+                    <div>
+                      <label className={styles.label} htmlFor="name">
+                        이름<span className={styles.req}>*</span>
+                      </label>
+                      <input
+                        id="name"
+                        className={styles.input}
+                        placeholder="예: 가현"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={20}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className={styles.label} htmlFor="age">
+                        나이<span className={styles.optional}>선택</span>
+                      </label>
+                      <input
+                        id="age"
+                        className={styles.input}
+                        placeholder="예: 20"
+                        inputMode="numeric"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className={styles.label}>성별</span>
+                    <div className={styles.segment} role="radiogroup" aria-label="성별">
+                      {GENDERS.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          role="radio"
+                          aria-checked={gender === g}
+                          className={`${styles.segBtn} ${gender === g ? styles.segOn : ''}`}
+                          onClick={() => setGender(g)}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. 성격 & 말투 */}
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>
+                <span className={styles.step}>2</span> 성격과 말투
+              </h2>
+
+              <div style={{ marginBottom: 20 }}>
+                <label className={styles.label} htmlFor="personality">
+                  성격<span className={styles.req}>*</span>
+                  <span className={styles.optional}>여러 개 고를 수 있어요</span>
+                </label>
+                <input
+                  id="personality"
+                  className={styles.input}
+                  placeholder="직접 입력하거나 아래에서 골라주세요"
+                  value={personality}
+                  onChange={(e) => setPersonality(e.target.value)}
+                  required
+                />
+                <div className={styles.chips}>
+                  {PERSONALITY_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`${styles.chip} ${personalityTags.includes(p) ? styles.chipOn : ''}`}
+                      onClick={() => togglePersonality(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className={styles.label} htmlFor="tone">
+                  말투<span className={styles.req}>*</span>
+                </label>
+                <input
+                  id="tone"
+                  className={styles.input}
+                  placeholder="직접 입력하거나 아래에서 골라주세요"
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  required
+                />
+                <div className={styles.chips}>
+                  {TONE_PRESETS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`${styles.chip} ${tone.trim() === t ? styles.chipOn : ''}`}
+                      onClick={() => setTone(tone.trim() === t ? '' : t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 3. 상세 설정 */}
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>
+                <span className={styles.step}>3</span> 상세 설정
+                <span className={styles.optional} style={{ fontSize: 13 }}>선택</span>
+              </h2>
+              <textarea
+                className={styles.textarea}
+                placeholder={'캐릭터의 배경, 좋아하는 것, 비밀, 지켜야 할 규칙 등을 자유롭게 적어주세요.\n예: 카페에서 일하는 대학생. 고양이를 좋아하고 커피는 못 마심.'}
+                value={detail}
+                onChange={(e) => setDetail(e.target.value.slice(0, MAX_DETAIL))}
+                rows={4}
+              />
+              <div className={styles.counter}>
+                {detail.length} / {MAX_DETAIL}
+              </div>
+            </section>
+          </form>
         </div>
 
-        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          {/* 💡 프로필 이미지 업로드 영역 (커스텀 아바타 스타일) */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <label
-              htmlFor="avatar-upload"
-              style={{
-                width: '90px',
-                height: '90px',
-                borderRadius: '50%',
-                background: '#f2f4f6',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                border: '2px dashed #dde1e5',
-                position: 'relative',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {previewUrl ? (
-                <img src={previewUrl} alt="미리보기" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ textAlign: 'center', color: '#8b95a1', fontSize: '12px' }}>
-                  <span style={{ fontSize: '20px', display: 'block', marginBottom: '2px' }}>📷</span>
-                  사진 추가
-                </div>
-              )}
-            </label>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
+        {/* 미리보기 */}
+        <aside className={styles.previewCol} aria-label="캐릭터 미리보기">
+          <p className={styles.previewLabel}>미리보기</p>
+          <div className={styles.preview}>
+            <div className={styles.previewHead}>
+              <img
+                className={styles.previewAvatar}
+                src={avatarSrc}
+                alt=""
+                onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
+              />
+              <div className={styles.previewName}>{name.trim() || '이름을 지어주세요'}</div>
+              <div className={styles.previewMeta}>{meta}</div>
+            </div>
+            <div className={styles.previewBody}>
+              <div className={styles.tags}>
+                {personalityTags.map((t) => (
+                  <span key={t} className={styles.tag}>{t}</span>
+                ))}
+                {tone.trim() && <span className={`${styles.tag} ${styles.tagTone}`}>{tone.trim()}</span>}
+                {!personalityTags.length && !tone.trim() && (
+                  <span className={styles.tagEmpty}>성격과 말투를 고르면 여기에 표시돼요</span>
+                )}
+              </div>
+              <div className={styles.bubbleRow}>
+                <img className={styles.bubbleAvatar} src={avatarSrc} alt="" />
+                <div className={styles.bubble}>{greetingFor(name, tone)}</div>
+              </div>
+            </div>
           </div>
+          <p className={styles.previewFoot}>실제 대화는 설정한 성격·말투·상세 설정을 바탕으로 AI가 만들어요.</p>
+        </aside>
+      </div>
 
-          {/* 캐릭터 이름 */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#333d4b', marginBottom: '6px' }}>
-              캐릭터 이름 <span style={{ color: '#f04452' }}>*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="예: 가현"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          {/* 성격 */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#333d4b', marginBottom: '6px' }}>
-              성격 <span style={{ color: '#f04452' }}>*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="예: 츤데레, 다정함, 장난기 많음"
-              value={personality}
-              onChange={(e) => setPersonality(e.target.value)}
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          {/* 말투 */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#333d4b', marginBottom: '6px' }}>
-              말투 <span style={{ color: '#f04452' }}>*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="예: 친근한 반말, 차분한 존댓말"
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          {/* 상세 설명 */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#333d4b', marginBottom: '6px' }}>
-              상세 배경설정 (선택)
-            </label>
-            <textarea
-              placeholder="캐릭터의 비밀, 좋아하는 것, 행동 규칙 등을 입력하세요."
-              value={detail}
-              onChange={(e) => setDetail(e.target.value)}
-              rows={3}
-              style={{ ...inputStyle, resize: 'none' }}
-            />
-          </div>
-
-          {/* 제출 버튼 */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              marginTop: '10px',
-              padding: '14px',
-              background: loading ? '#a29bfe' : '#6c5ce7',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '15px',
-              fontWeight: 'bold',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s ease',
-            }}
-          >
-            {loading ? '캐릭터 생성 중...' : '캐릭터 만들기'}
-          </button>
-        </form>
-      </main>
+      <div className={styles.submitBar}>
+        <button type="submit" form="create-form" className={styles.submit} disabled={!canSubmit}>
+          {loading ? '만드는 중...' : canSubmit ? `${name.trim()}${hasBatchim(name.trim()) ? '과' : '와'} 대화 시작하기` : '이름 · 성격 · 말투를 채워주세요'}
+        </button>
+      </div>
     </div>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px 14px',
-  borderRadius: '10px',
-  border: '1px solid #e5e8eb',
-  background: '#f9fafb',
-  fontSize: '14px',
-  outline: 'none',
-  boxSizing: 'border-box',
-};
