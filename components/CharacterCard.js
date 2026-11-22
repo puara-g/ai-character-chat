@@ -34,6 +34,8 @@ export default function CharacterCard({ character, onOpen, badge, badgeTone, foo
   const tags = splitTags(character.personality).slice(0, 3);
   const age = character.age ? `${character.age}${/^\d+$/.test(String(character.age)) ? '살' : ''}` : '';
   const meta = [character.gender, age].filter(Boolean).join(' · ');
+  // 사이트가 기본으로 넣어 둔 캐릭터
+  const shownBadge = badge || (character.source === 'official' ? '기본 캐릭터' : null);
 
   return (
     <div
@@ -46,7 +48,7 @@ export default function CharacterCard({ character, onOpen, badge, badgeTone, foo
       }}
     >
       <div className={styles.cover} style={{ background: coverFor(character.id || character.name) }} />
-      {badge && <span className={`${styles.badge} ${badgeTone === 'temp' ? styles.badgeTemp : ''}`}>{badge}</span>}
+      {shownBadge && <span className={`${styles.badge} ${badgeTone === 'temp' ? styles.badgeTemp : ''}`}>{shownBadge}</span>}
 
       <div className={styles.cardBody}>
         <img
