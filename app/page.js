@@ -9,6 +9,7 @@ import GuestNotice from '@/components/GuestNotice';
 import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
+import { getNicknames, creatorLabel } from '@/lib/profiles';
 
 const PUBLIC_PREVIEW_COUNT = 8;
 
@@ -16,6 +17,7 @@ export default function HomePage() {
   const [user, setUser] = useState(null);
   const [characters, setCharacters] = useState([]);
   const [publicCharacters, setPublicCharacters] = useState([]);
+  const [nicknames, setNicknames] = useState({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -30,7 +32,9 @@ export default function HomePage() {
       console.error('공개 캐릭터 불러오기 실패:', error);
       return;
     }
-    setPublicCharacters((data || []).filter((c) => !me || c.user_id !== me.id).slice(0, PUBLIC_PREVIEW_COUNT));
+    const list = (data || []).filter((c) => !me || c.user_id !== me.id).slice(0, PUBLIC_PREVIEW_COUNT);
+    setPublicCharacters(list);
+    setNicknames(await getNicknames(list.map((c) => c.user_id)));
   };
 
   const load = async () => {
@@ -180,7 +184,7 @@ export default function HomePage() {
                 <CharacterCard
                   key={char.id}
                   character={char}
-                  onOpen={() => router.push(`/chat/${char.id}`)}
+                  onOpen={() => router.push(`/character/${char.id}`)}
                   badge={isGuestId(char.id) ? '임시' : char.source === 'kakao' ? '카톡 말투' : null}
                   badgeTone={isGuestId(char.id) ? 'temp' : undefined}
                   footer={ownerFooter(char)}
@@ -219,7 +223,12 @@ export default function HomePage() {
           ) : publicCharacters.length ? (
             <div className={styles.grid}>
               {publicCharacters.map((char) => (
-                <CharacterCard key={char.id} character={char} onOpen={() => router.push(`/chat/${char.id}`)} />
+                <CharacterCard
+                  key={char.id}
+                  character={char}
+                  creator={creatorLabel(char, nicknames)}
+                  onOpen={() => router.push(`/character/${char.id}`)}
+                />
               ))}
             </div>
           ) : (

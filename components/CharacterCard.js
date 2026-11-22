@@ -18,7 +18,7 @@ const COVERS = [
   'linear-gradient(135deg, #fddb92, #f6a5c0)',
 ];
 
-const coverFor = (key = '') => {
+export const coverFor = (key = '') => {
   let h = 0;
   for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return COVERS[h % COVERS.length];
@@ -30,7 +30,7 @@ const splitTags = (text = '') =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-export default function CharacterCard({ character, onOpen, badge, badgeTone, footer }) {
+export default function CharacterCard({ character, onOpen, badge, badgeTone, footer, creator }) {
   const tags = splitTags(character.personality).slice(0, 3);
   const age = character.age ? `${character.age}${/^\d+$/.test(String(character.age)) ? '살' : ''}` : '';
   const meta = [character.gender, age].filter(Boolean).join(' · ');
@@ -61,6 +61,7 @@ export default function CharacterCard({ character, onOpen, badge, badgeTone, foo
         />
         <h3 className={styles.name}>{character.name}</h3>
         <div className={styles.meta}>{meta}</div>
+        {creator && <div className={styles.creator}>by {creator}</div>}
 
         <div className={styles.tags}>
           {tags.map((t) => (

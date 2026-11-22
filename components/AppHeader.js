@@ -1,13 +1,26 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, UserRound } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { getMyProfile } from '@/lib/profiles';
 import styles from './browse.module.css';
 
 export default function AppHeader({ user, onLogout }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [nickname, setNickname] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    if (user?.id) {
+      getMyProfile(user.id).then((p) => alive && setNickname(p?.nickname || ''));
+    }
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   const links = [
     { href: '/', label: '내 캐릭터' },
@@ -37,9 +50,15 @@ export default function AppHeader({ user, onLogout }) {
         </nav>
 
         {user ? (
-          <button type="button" className={styles.headerBtn} onClick={onLogout}>
-            로그아웃
-          </button>
+          <div className={styles.headerUser}>
+            <Link href="/settings" className={styles.profileLink} title="닉네임 설정">
+              <UserRound size={16} aria-hidden="true" />
+              <span className={styles.profileName}>{user.id && nickname ? nickname : '닉네임 설정'}</span>
+            </Link>
+            <button type="button" className={styles.headerBtn} onClick={onLogout}>
+              로그아웃
+            </button>
+          </div>
         ) : (
           <button
             type="button"

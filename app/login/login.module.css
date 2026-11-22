@@ -121,6 +121,12 @@
   box-shadow: var(--focus-ring);
 }
 
+.hint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
 .message {
   margin: 0;
   padding: var(--space-3) var(--space-4);

@@ -211,18 +211,25 @@ export default function ChatPage({ params }) {
           <button type="button" className={styles.back} onClick={() => router.push('/')} aria-label="목록으로">
             <ArrowLeft size={20} aria-hidden="true" />
           </button>
-          <img
-            className={styles.headerAvatar}
-            src={profileImage}
-            alt=""
-            onError={(e) => {
-              e.currentTarget.src = DEFAULT_AVATAR;
-            }}
-          />
-          <div className={styles.headerText}>
-            <h1 className={styles.headerName}>{character.name}</h1>
-            <p className={styles.headerMeta}>{[tags.join(', '), character.tone].filter(Boolean).join(' · ')}</p>
-          </div>
+          <button
+            type="button"
+            className={styles.headerProfile}
+            onClick={() => router.push(`/character/${character.id}`)}
+            title="캐릭터 정보 보기"
+          >
+            <img
+              className={styles.headerAvatar}
+              src={profileImage}
+              alt=""
+              onError={(e) => {
+                e.currentTarget.src = DEFAULT_AVATAR;
+              }}
+            />
+            <span className={styles.headerText}>
+              <span className={styles.headerName}>{character.name}</span>
+              <span className={styles.headerMeta}>{[tags.join(', '), character.tone].filter(Boolean).join(' · ')}</span>
+            </span>
+          </button>
         </div>
       </header>
 

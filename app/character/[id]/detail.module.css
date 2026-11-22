@@ -1,0 +1,233 @@
+/* 캐릭터 정보. 값은 app/tokens.css 규칙만 사용 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-16);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-1);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.card {
+  background: var(--surface);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cover {
+  height: 112px;
+}
+
+.body {
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.avatar {
+  width: 112px;
+  height: 112px;
+  margin-top: -56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--surface);
+  background: var(--surface);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.badges:empty {
+  display: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--gray-1);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.badgeTemp {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.name {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--muted);
+}
+
+.creator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.creator b {
+  color: var(--ink-2);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.tag {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.section {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line-soft);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.primaryBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--purple);
+  color: #fff;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryBtn:hover {
+  background: var(--purple-dark);
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.secondaryBtn:hover {
+  border-color: var(--purple-line);
+  color: var(--purple);
+}
+
+.skeleton {
+  height: 480px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, #eceef3 25%, #f5f6f9 50%, #eceef3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.missing {
+  padding: var(--space-12) var(--space-6);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+}
+
+.missingTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}
+
+.missingSub {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .body {
+    padding: 0 var(--space-5) var(--space-5);
+  }
+
+  .name {
+    font-size: var(--fs-2xl);
+  }
+}

@@ -1,0 +1,116 @@
+/* 프로필 설정. 값은 app/tokens.css 규칙만 사용 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4) var(--space-16);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.sub {
+  margin: 0 0 var(--space-6);
+  font-size: var(--fs-md);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card {
+  padding: var(--space-6);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: var(--fs-md);
+  color: var(--ink);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--purple);
+  background: #fff;
+  box-shadow: var(--focus-ring);
+}
+
+.hint,
+.hintError {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.hintError {
+  color: var(--danger);
+}
+
+.error,
+.info {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+}
+
+.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.info {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.submit {
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--purple);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--purple-dark);
+}
+
+.submit:disabled {
+  background: var(--purple-disabled);
+  cursor: not-allowed;
+}
+
+.account {
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-align: center;
+}

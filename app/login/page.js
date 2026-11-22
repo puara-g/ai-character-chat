@@ -5,11 +5,29 @@ import { MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { checkNickname, isNicknameTaken, saveNickname, getMyProfile, NICKNAME_HINT } from '@/lib/profiles';
 import styles from './login.module.css';
+
+// 이메일 인증 때문에 가입 직후 저장하지 못한 닉네임은 첫 로그인 때 저장
+const PENDING_KEY = 'pending_nickname';
+const readPending = () => {
+  try {
+    return localStorage.getItem(PENDING_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+const writePending = (v) => {
+  try {
+    if (v) localStorage.setItem(PENDING_KEY, v);
+    else localStorage.removeItem(PENDING_KEY);
+  } catch {}
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [isSignUp, setIsSignUp] = useState(false); // 로그인 / 회원가입 모드 전환
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null); // { type: 'error' | 'info', text }
@@ -34,24 +52,40 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
+        const problem = checkNickname(nickname);
+        if (problem || (await isNicknameTaken(nickname))) {
+          setMessage({ type: 'error', text: problem || '이미 쓰고 있는 닉네임이에요. 다른 닉네임을 정해 주세요.' });
+          setLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
           setMessage({ type: 'error', text: `회원가입 실패: ${error.message}` });
         } else if (data.session) {
-          // 이메일 인증이 꺼져 있으면 바로 로그인됨
-          router.push('/');
+          // 이메일 인증이 꺼져 있으면 바로 로그인됨 → 닉네임 바로 저장
+          const saveProblem = await saveNickname(data.user.id, nickname);
+          if (saveProblem) writePending(nickname.trim());
+          router.push(saveProblem ? '/settings' : '/');
           router.refresh();
           return;
         } else {
+          writePending(nickname.trim());
           setMessage({ type: 'info', text: '가입 완료! 메일함에서 인증 링크를 누른 뒤 로그인해 주세요.' });
           setIsSignUp(false);
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           setMessage({ type: 'error', text: '이메일 또는 비밀번호가 맞지 않아요.' });
         } else {
-          router.push('/');
+          // 닉네임이 없으면: 가입 때 적어 둔 게 있으면 저장, 아니면 설정 페이지로
+          let needsNickname = false;
+          if (!(await getMyProfile(data.user.id))) {
+            const pending = readPending();
+            needsNickname = !pending || Boolean(await saveNickname(data.user.id, pending));
+          }
+          writePending('');
+          router.push(needsNickname ? '/settings' : '/');
           router.refresh();
           return;
         }
@@ -99,6 +133,25 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleAuth} className={styles.form}>
+          {isSignUp && (
+            <div>
+              <label className={styles.label} htmlFor="nickname">
+                닉네임
+              </label>
+              <input
+                id="nickname"
+                type="text"
+                className={styles.input}
+                placeholder="예: 캐릭터장인"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={12}
+                autoComplete="nickname"
+                required
+              />
+              <p className={styles.hint}>{NICKNAME_HINT} · 내가 공개한 캐릭터에 &ldquo;만든 사람&rdquo;으로 보여요</p>
+            </div>
+          )}
           <div>
             <label className={styles.label} htmlFor="email">
               이메일

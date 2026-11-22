@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
+import { getNicknames, creatorLabel } from '@/lib/profiles';
 
 const PAGE_LIMIT = 100;
 const FILTERS = ['전체', '다정함', '츤데레', '장난기 많음', '시크함', '활발함', '존댓말', '반말'];
@@ -14,6 +15,7 @@ const FILTERS = ['전체', '다정함', '츤데레', '장난기 많음', '시크
 export default function ExplorePage() {
   const [user, setUser] = useState(null);
   const [characters, setCharacters] = useState([]);
+  const [nicknames, setNicknames] = useState({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -39,6 +41,7 @@ export default function ExplorePage() {
         setFailed(true);
       } else {
         setCharacters(data || []);
+        setNicknames(await getNicknames((data || []).map((c) => c.user_id)));
       }
       setLoading(false);
     })();
@@ -47,12 +50,16 @@ export default function ExplorePage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return characters.filter((c) => {
-      const text = [c.name, c.personality, c.tone, c.detail].filter(Boolean).join(' ').toLowerCase();
-      if (q && !text.includes(q)) return false;
+      const creator = creatorLabel(c, nicknames) || '';
+      const text = [c.name, c.personality, c.tone, c.detail, creator].filter(Boolean).join(' ').toLowerCase();
+      // '@닉네임' 으로 검색하면 제작자만 찾음
+      if (q.startsWith('@')) {
+        if (!creator.toLowerCase().includes(q.slice(1))) return false;
+      } else if (q && !text.includes(q)) return false;
       if (filter !== '전체' && !text.includes(filter.toLowerCase())) return false;
       return true;
     });
-  }, [characters, query, filter]);
+  }, [characters, query, filter, nicknames]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -77,7 +84,7 @@ export default function ExplorePage() {
           <input
             className={styles.search}
             type="search"
-            placeholder="이름, 성격, 말투로 검색"
+            placeholder="이름, 성격, 말투, 제작자 닉네임으로 검색 (@닉네임은 제작자만)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="캐릭터 검색"
@@ -111,7 +118,8 @@ export default function ExplorePage() {
               <CharacterCard
                 key={char.id}
                 character={char}
-                onOpen={() => router.push(`/chat/${char.id}`)}
+                creator={creatorLabel(char, nicknames)}
+                onOpen={() => router.push(`/character/${char.id}`)}
                 badge={user && char.user_id === user.id ? '내 캐릭터' : null}
               />
             ))}
