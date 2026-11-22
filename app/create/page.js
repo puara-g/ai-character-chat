@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, Globe, Lock, UserRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { addGuestCharacter } from '@/lib/guest';
@@ -14,6 +14,10 @@ const MAX_DETAIL = 500;
 const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
 const GENDERS = ['여성', '남성', '기타'];
+const VISIBILITY_OPTIONS = [
+  { value: true, Icon: Globe, title: '공개', desc: '둘러보기에서 누구나 대화할 수 있어요. 대화 내용은 각자만 봐요.' },
+  { value: false, Icon: Lock, title: '나만 보기', desc: '내 목록에서만 보여요. 나중에 바꿀 수 있어요.' },
+];
 const PERSONALITY_PRESETS = ['다정함', '츤데레', '장난기 많음', '시크함', '수줍음', '활발함', '지적임', '엉뚱함'];
 const TONE_PRESETS = ['친근한 반말', '차분한 존댓말', '귀여운 말투', '무뚝뚝한 말투', '능글맞은 말투', '사투리'];
 
@@ -173,18 +177,17 @@ export default function CreateCharacterPage() {
 
               <div className={styles.profileRow}>
                 <div className={styles.avatarBox}>
-                  <label
-                    htmlFor="avatar-upload"
-                    className={`${styles.avatar} ${previewUrl ? styles.avatarFilled : ''}`}
-                  >
-                    {previewUrl ? (
-                      <img src={previewUrl} alt="프로필 미리보기" />
-                    ) : (
-                      <span>
-                        <Camera className={styles.avatarIcon} size={24} aria-hidden="true" />
-                        사진 추가
-                      </span>
-                    )}
+                  <label htmlFor="avatar-upload" className={styles.avatarWrap} aria-label="프로필 사진 선택">
+                    <span className={styles.avatar}>
+                      {previewUrl ? (
+                        <img src={previewUrl} alt="프로필 미리보기" />
+                      ) : (
+                        <UserRound size={40} strokeWidth={1.6} aria-hidden="true" />
+                      )}
+                    </span>
+                    <span className={styles.avatarBadge}>
+                      <Camera size={14} strokeWidth={2.4} aria-hidden="true" />
+                    </span>
                   </label>
                   <input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} hidden />
                   {previewUrl ? (
@@ -192,7 +195,7 @@ export default function CreateCharacterPage() {
                       사진 지우기
                     </button>
                   ) : (
-                    <span className={styles.avatarHint}>2MB 이하</span>
+                    <span className={styles.avatarHint}>사진 추가 · 2MB 이하</span>
                   )}
                 </div>
 
@@ -326,25 +329,46 @@ export default function CreateCharacterPage() {
               </div>
             </section>
 
-            {/* 4. 공개 설정 (로그인한 사용자만) */}
-            {!isGuest && (
-              <section className={styles.card}>
-                <label className={styles.switchRow}>
-                  <span>
-                    <span className={styles.switchTitle}>둘러보기에 공개</span>
-                    <span className={styles.switchDesc}>
-                      다른 사람도 이 캐릭터와 대화할 수 있어요. 대화 내용은 각자만 볼 수 있어요.
-                    </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    className={styles.switch}
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                  />
-                </label>
-              </section>
-            )}
+            {/* 4. 공개 설정 */}
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>
+                <span className={styles.step}>4</span> 공개 설정
+              </h2>
+
+              <div className={styles.visibility} role="radiogroup" aria-label="공개 설정">
+                {VISIBILITY_OPTIONS.map(({ value, Icon, title, desc }) => {
+                  const selected = (isGuest ? false : isPublic) === value;
+                  return (
+                    <button
+                      key={title}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      disabled={isGuest}
+                      className={`${styles.option} ${selected ? styles.optionOn : ''}`}
+                      onClick={() => setIsPublic(value)}
+                    >
+                      <span className={styles.optionIcon}>
+                        <Icon size={18} aria-hidden="true" />
+                      </span>
+                      <span className={styles.optionText}>
+                        <span className={styles.optionTitle}>{title}</span>
+                        <span className={styles.optionDesc}>{desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isGuest && (
+                <p className={styles.visibilityNote}>
+                  체험 중에는 캐릭터가 저장되지 않아서 공개할 수 없어요.{' '}
+                  <button type="button" className={styles.inlineLink} onClick={() => router.push('/login?mode=signup')}>
+                    회원가입하기
+                  </button>
+                </p>
+              )}
+            </section>
           </form>
         </div>
 
