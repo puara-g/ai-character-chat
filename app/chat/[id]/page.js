@@ -146,7 +146,7 @@ export default function ChatPage({ params }) {
           setGuestMessages(characterId, updated);
         }
       } else if (data.error) {
-        setError(`답장을 받지 못했어요: ${data.error}`);
+        setError(data.error);
       }
     } catch (err) {
       console.error('전송 실패:', err);
