@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
 import GuestNotice from '@/components/GuestNotice';
 import AppHeader from '@/components/AppHeader';
-import CharacterCard from '@/components/CharacterCard';
+import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
 
 const PUBLIC_PREVIEW_COUNT = 8;
@@ -22,7 +22,7 @@ export default function HomePage() {
   const loadPublic = async (me) => {
     const { data, error } = await supabase
       .from('characters')
-      .select('*')
+      .select(CARD_COLUMNS)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(PUBLIC_PREVIEW_COUNT + 8);
@@ -47,7 +47,7 @@ export default function HomePage() {
       if (me) {
         const { data: mine } = await supabase
           .from('characters')
-          .select('*')
+          .select(CARD_COLUMNS)
           .eq('user_id', me.id)
           .order('created_at', { ascending: false });
         setCharacters(mine || []);
@@ -108,10 +108,11 @@ export default function HomePage() {
   };
 
   const ownerFooter = (char) => {
-    const guest = isGuestId(char.id);
+    // 체험 캐릭터·카톡 캐릭터는 공개 전환 불가
+    const fixedPrivate = isGuestId(char.id) || char.source === 'kakao';
     return (
       <>
-        {guest ? (
+        {fixedPrivate ? (
           <span className={styles.chatHint}>
             대화하기 <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />
           </span>
@@ -180,8 +181,8 @@ export default function HomePage() {
                   key={char.id}
                   character={char}
                   onOpen={() => router.push(`/chat/${char.id}`)}
-                  badge={isGuestId(char.id) ? '임시' : null}
-                  badgeTone="temp"
+                  badge={isGuestId(char.id) ? '임시' : char.source === 'kakao' ? '카톡 말투' : null}
+                  badgeTone={isGuestId(char.id) ? 'temp' : undefined}
                   footer={ownerFooter(char)}
                 />
               ))}

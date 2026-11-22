@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, use } from 'react';
 import { ArrowLeft, ArrowUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages } from '@/lib/guest';
+import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages, getGuestMemory } from '@/lib/guest';
+import { findMemories } from '@/lib/kakao';
+import { embedTexts } from '@/lib/embed';
 import GuestNotice from '@/components/GuestNotice';
 import styles from './chat.module.css';
 
@@ -25,6 +27,8 @@ export default function ChatPage({ params }) {
   const [isGuest, setIsGuest] = useState(false);
   const [error, setError] = useState('');
   const scrollRef = useRef(null);
+  // 카톡 캐릭터의 '상대 말 → 실제 대답' 쌍 (화면 상태와 무관해서 ref로 보관)
+  const memoryRef = useRef([]);
 
   // 새 메시지가 오면 맨 아래로
   useEffect(() => {
@@ -43,6 +47,7 @@ export default function ChatPage({ params }) {
       }
       setIsGuest(true);
       setCharacter(guestChar);
+      memoryRef.current = getGuestMemory(characterId);
       setMessages(getGuestMessages(characterId));
       return;
     }
@@ -63,7 +68,9 @@ export default function ChatPage({ params }) {
       router.push('/');
       return;
     }
-    setCharacter(charData);
+    const { memory_pairs: memoryPairs, ...charInfo } = charData;
+    memoryRef.current = Array.isArray(memoryPairs) ? memoryPairs : [];
+    setCharacter(charInfo);
 
     if (!user) {
       setIsGuest(true);
@@ -110,6 +117,19 @@ export default function ChatPage({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]);
 
+  // 카톡 캐릭터: 지금 메시지와 비슷했던 상황에서의 실제 대답 찾기 (의미 → 실패하면 글자 비교)
+  const recall = async (text) => {
+    const pairs = memoryRef.current;
+    if (character.source !== 'kakao' || !pairs.length) return [];
+    let queryVec = null;
+    if (pairs.some((p) => p.v)) {
+      try {
+        queryVec = (await embedTexts([text]))?.[0] || null;
+      } catch {}
+    }
+    return findMemories(pairs, text, { queryVec });
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg = input;
@@ -121,6 +141,7 @@ export default function ChatPage({ params }) {
     setMessages(newMsgs);
 
     try {
+      const memories = await recall(userMsg);
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,18 +149,25 @@ export default function ChatPage({ params }) {
           message: userMsg,
           character,
           history: messages.slice(-10),
+          memories,
         }),
       });
 
       const data = await res.json();
 
       if (data.reply) {
-        const updated = [...newMsgs, { sender: 'bot', content: data.reply }];
+        // 카톡 캐릭터는 줄바꿈을 말풍선 여러 개로 나눠 보여줌
+        const parts =
+          character.source === 'kakao'
+            ? data.reply.split('\n').map((t) => t.trim()).filter(Boolean)
+            : [data.reply];
+        const botMsgs = parts.map((content) => ({ sender: 'bot', content }));
+        const updated = [...newMsgs, ...botMsgs];
         setMessages(updated);
         if (sessionId) {
           const { error } = await supabase.from('messages').insert([
             { session_id: sessionId, sender: 'user', content: userMsg },
-            { session_id: sessionId, sender: 'bot', content: data.reply },
+            ...botMsgs.map((m) => ({ session_id: sessionId, ...m })),
           ]);
           if (error) console.error('대화 저장 실패:', error);
         } else {

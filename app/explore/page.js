@@ -5,7 +5,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
-import CharacterCard from '@/components/CharacterCard';
+import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
 
 const PAGE_LIMIT = 100;
@@ -29,7 +29,7 @@ export default function ExplorePage() {
 
       const { data, error } = await supabase
         .from('characters')
-        .select('*')
+        .select(CARD_COLUMNS)
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(PAGE_LIMIT);

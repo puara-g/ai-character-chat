@@ -3,6 +3,9 @@
 import styles from './browse.module.css';
 import { ArrowRight } from 'lucide-react';
 
+// 목록에서는 무거운 칸(style, memory_pairs)을 빼고 불러옴
+export const CARD_COLUMNS = 'id,name,gender,age,personality,tone,detail,avatar_url,is_public,user_id,created_at,source';
+
 export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
 // 이름으로 카드 윗부분 색을 정해서 카드마다 조금씩 다르게

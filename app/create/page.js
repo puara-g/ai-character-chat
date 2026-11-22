@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Camera, Globe, Lock, UserRound } from 'lucide-react';
+import { ArrowLeft, Camera, Globe, Lock, MessagesSquare, PenLine, UserRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { addGuestCharacter } from '@/lib/guest';
 import GuestNotice from '@/components/GuestNotice';
 import styles from './create.module.css';
 import { greetingFor, hasBatchim } from './greeting';
+import KakaoImport from './KakaoImport';
+import { attachVectors } from '@/lib/embed';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const MAX_DETAIL = 500;
@@ -49,6 +51,11 @@ export default function CreateCharacterPage() {
   const [loading, setLoading] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
+  // 'manual': 직접 만들기, 'kakao': 카톡 대화로 만들기
+  const [mode, setMode] = useState('manual');
+  const [kakao, setKakao] = useState(null); // { target, profile }
+  const [consent, setConsent] = useState(false);
+  const [progress, setProgress] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -100,6 +107,35 @@ export default function CreateCharacterPage() {
     return data.publicUrl;
   };
 
+  const handleKakaoPick = (picked) => {
+    setKakao(picked);
+    if (picked) setName(picked.target);
+  };
+
+  const switchMode = (next) => {
+    setMode(next);
+    if (next === 'manual') {
+      setKakao(null);
+      setConsent(false);
+    }
+  };
+
+  const isKakao = mode === 'kakao';
+
+  // 카톡 캐릭터: 말투 정보 + '상대 말 → 실제 대답' 쌍 (의미 벡터 포함)
+  const buildKakaoFields = async () => {
+    const { profile } = kakao;
+    setProgress('대화 분석 중...');
+    const { pairs } = await attachVectors(profile.memoryPairs, (done, total) =>
+      setProgress(`대화 분석 중 ${done.toLocaleString()} / ${total.toLocaleString()}`)
+    );
+    return {
+      source: 'kakao',
+      style: { examples: profile.styleExamples, summary: profile.styleSummary, multiBubble: profile.multiBubble },
+      memory_pairs: pairs,
+    };
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -115,11 +151,12 @@ export default function CreateCharacterPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const extra = isKakao ? await buildKakaoFields() : {};
 
       // 로그인 안 했으면 체험 모드: 이 탭에만 임시 저장
       if (!user) {
         const avatarUrl = imageFile ? await readAsDataUrl(imageFile) : null;
-        const created = addGuestCharacter({ ...profile, avatar_url: avatarUrl });
+        const created = addGuestCharacter({ ...profile, ...extra, avatar_url: avatarUrl });
         router.push(`/chat/${created.id}`);
         return;
       }
@@ -128,7 +165,7 @@ export default function CreateCharacterPage() {
 
       const { data: created, error: dbError } = await supabase
         .from('characters')
-        .insert([{ ...profile, avatar_url: avatarUrl, user_id: user.id, is_public: isPublic }])
+        .insert([{ ...profile, ...extra, avatar_url: avatarUrl, user_id: user.id, is_public: isKakao ? false : isPublic }])
         .select('id')
         .single();
 
@@ -140,13 +177,20 @@ export default function CreateCharacterPage() {
       alert(error.message || '오류가 발생했습니다.');
     } finally {
       setLoading(false);
+      setProgress('');
     }
   };
 
   const personalityTags = splitTags(personality);
   const avatarSrc = previewUrl || DEFAULT_AVATAR;
   const meta = [gender, age.trim() && `${age.trim()}살`].filter(Boolean).join(' · ');
-  const canSubmit = name.trim() && personality.trim() && tone.trim() && !loading;
+  const canSubmit =
+    name.trim() &&
+    !loading &&
+    (isKakao ? Boolean(kakao) && consent : personality.trim() && tone.trim());
+  const stepOffset = isKakao ? 1 : 0;
+  // 미리보기 말풍선: 카톡 모드면 그 사람이 실제로 보낸 메시지
+  const kakaoSample = kakao?.profile.styleExamples.find((t) => t.length >= 4 && t.length <= 40);
 
   return (
     <div className={styles.page}>
@@ -168,11 +212,51 @@ export default function CreateCharacterPage() {
             <GuestNotice onLogin={() => router.push('/login?mode=signup')} />
           )}
 
+          <div className={styles.modeTabs} role="tablist" aria-label="만드는 방법">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!isKakao}
+              className={`${styles.modeTab} ${!isKakao ? styles.modeTabOn : ''}`}
+              onClick={() => switchMode('manual')}
+            >
+              <PenLine size={16} aria-hidden="true" />
+              직접 만들기
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isKakao}
+              className={`${styles.modeTab} ${isKakao ? styles.modeTabOn : ''}`}
+              onClick={() => switchMode('kakao')}
+            >
+              <MessagesSquare size={16} aria-hidden="true" />
+              카톡 대화로 만들기
+            </button>
+          </div>
+
           <form id="create-form" onSubmit={handleCreate} className={styles.form}>
-            {/* 1. 기본 프로필 */}
+            {isKakao && (
+              <section className={styles.card}>
+                <h2 className={styles.cardTitle}>
+                  <span className={styles.step}>1</span> 카톡 대화 불러오기
+                </h2>
+                <KakaoImport onPick={handleKakaoPick} />
+                {kakao && (
+                  <label className={styles.consent}>
+                    <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                    <span>
+                      실제 사람의 말투를 따라 하는 캐릭터예요. 상대방이 원하지 않을 수 있다는 걸 알고 있고, 개인적인 용도로만 쓸게요.
+                    </span>
+                  </label>
+                )}
+              </section>
+            )}
+
+            {/* 기본 프로필 */}
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>
-                <span className={styles.step}>1</span> 기본 프로필
+                <span className={styles.step}>{1 + stepOffset}</span> 기본 프로필
               </h2>
 
               <div className={styles.profileRow}>
@@ -251,15 +335,17 @@ export default function CreateCharacterPage() {
               </div>
             </section>
 
-            {/* 2. 성격 & 말투 */}
+            {/* 성격 & 말투 */}
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>
-                <span className={styles.step}>2</span> 성격과 말투
+                <span className={styles.step}>{2 + stepOffset}</span> 성격과 말투
+                {isKakao && <span className={styles.optional}>선택</span>}
               </h2>
+              {isKakao && <p className={styles.help}>비워 두면 카톡 대화에서 드러난 성격과 말투 그대로 대화해요.</p>}
 
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="personality">
-                  성격<span className={styles.req}>*</span>
+                  성격{!isKakao && <span className={styles.req}>*</span>}
                   <span className={styles.optional}>여러 개 고를 수 있어요</span>
                 </label>
                 <input
@@ -268,7 +354,7 @@ export default function CreateCharacterPage() {
                   placeholder="직접 입력하거나 아래에서 골라주세요"
                   value={personality}
                   onChange={(e) => setPersonality(e.target.value)}
-                  required
+                  required={!isKakao}
                 />
                 <div className={styles.chips}>
                   {PERSONALITY_PRESETS.map((p) => (
@@ -286,7 +372,7 @@ export default function CreateCharacterPage() {
 
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="tone">
-                  말투<span className={styles.req}>*</span>
+                  말투{!isKakao && <span className={styles.req}>*</span>}
                 </label>
                 <input
                   id="tone"
@@ -294,7 +380,7 @@ export default function CreateCharacterPage() {
                   placeholder="직접 입력하거나 아래에서 골라주세요"
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  required
+                  required={!isKakao}
                 />
                 <div className={styles.chips}>
                   {TONE_PRESETS.map((t) => (
@@ -314,7 +400,7 @@ export default function CreateCharacterPage() {
             {/* 3. 상세 설정 */}
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>
-                <span className={styles.step}>3</span> 상세 설정
+                <span className={styles.step}>{3 + stepOffset}</span> 상세 설정
                 <span className={styles.optional}>선택</span>
               </h2>
               <textarea
@@ -332,19 +418,19 @@ export default function CreateCharacterPage() {
             {/* 4. 공개 설정 */}
             <section className={styles.card}>
               <h2 className={styles.cardTitle}>
-                <span className={styles.step}>4</span> 공개 설정
+                <span className={styles.step}>{4 + stepOffset}</span> 공개 설정
               </h2>
 
               <div className={styles.visibility} role="radiogroup" aria-label="공개 설정">
                 {VISIBILITY_OPTIONS.map(({ value, Icon, title, desc }) => {
-                  const selected = (isGuest ? false : isPublic) === value;
+                  const selected = (isGuest || isKakao ? false : isPublic) === value;
                   return (
                     <button
                       key={title}
                       type="button"
                       role="radio"
                       aria-checked={selected}
-                      disabled={isGuest}
+                      disabled={isGuest || isKakao}
                       className={`${styles.option} ${selected ? styles.optionOn : ''}`}
                       onClick={() => setIsPublic(value)}
                     >
@@ -360,7 +446,11 @@ export default function CreateCharacterPage() {
                 })}
               </div>
 
-              {isGuest && (
+              {isKakao ? (
+                <p className={styles.visibilityNote}>
+                  카톡 대화로 만든 캐릭터는 실제 사람의 말투가 담겨 있어서 항상 나만 볼 수 있어요.
+                </p>
+              ) : isGuest && (
                 <p className={styles.visibilityNote}>
                   체험 중에는 캐릭터가 저장되지 않아서 공개할 수 없어요.{' '}
                   <button type="button" className={styles.inlineLink} onClick={() => router.push('/login?mode=signup')}>
@@ -398,7 +488,7 @@ export default function CreateCharacterPage() {
               </div>
               <div className={styles.bubbleRow}>
                 <img className={styles.bubbleAvatar} src={avatarSrc} alt="" />
-                <div className={styles.bubble}>{greetingFor(name, tone, personalityTags)}</div>
+                <div className={styles.bubble}>{kakaoSample || greetingFor(name, tone, personalityTags)}</div>
               </div>
             </div>
           </div>
@@ -408,7 +498,17 @@ export default function CreateCharacterPage() {
 
       <div className={styles.submitBar}>
         <button type="submit" form="create-form" className={styles.submit} disabled={!canSubmit}>
-          {loading ? '만드는 중...' : canSubmit ? `${name.trim()}${hasBatchim(name.trim()) ? '과' : '와'} 대화 시작하기` : '이름 · 성격 · 말투를 채워주세요'}
+          {loading
+            ? progress || '만드는 중...'
+            : canSubmit
+              ? `${name.trim()}${hasBatchim(name.trim()) ? '과' : '와'} 대화 시작하기`
+              : isKakao
+                ? !kakao
+                  ? '카톡 파일을 올리고 따라 할 사람을 골라주세요'
+                  : !consent
+                    ? '안내를 확인하고 체크해 주세요'
+                    : '이름을 채워주세요'
+                : '이름 · 성격 · 말투를 채워주세요'}
         </button>
       </div>
     </div>

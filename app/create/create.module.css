@@ -395,6 +395,241 @@
   text-decoration: underline;
 }
 
+/* ---------- 만드는 방법 탭 ---------- */
+.modeTabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  margin-bottom: var(--space-4);
+  background: var(--gray-1);
+  border-radius: var(--radius-md);
+}
+
+.modeTab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.modeTabOn {
+  background: #fff;
+  color: var(--purple);
+  box-shadow: var(--shadow-raised);
+}
+
+/* ---------- 카톡 불러오기 ---------- */
+.filePick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.filePick:hover {
+  border-color: var(--purple-line);
+  background: var(--purple-soft);
+}
+
+.filePickIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--purple);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.fileName {
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.fileChange {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--purple);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.help {
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.cardTitle + .help {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+}
+
+.fieldError {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.peopleBlock {
+  margin-top: var(--space-5);
+}
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: #fff;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+}
+
+.person:hover {
+  border-color: var(--purple-line);
+}
+
+.personOn {
+  border-color: var(--purple);
+  background: var(--purple-soft);
+}
+
+.personName {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.personCount {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.analysis {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  border: 1px solid var(--line-soft);
+}
+
+.analysisTitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.analysisSub {
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sample {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--space-1) var(--radius-md) var(--radius-md) var(--radius-md);
+  background: #fff;
+  border: var(--border-card);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.privacy {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.privacy svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--success);
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-ink);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.consent input {
+  margin: 3px 0 0;
+  accent-color: var(--purple);
+  flex-shrink: 0;
+}
+
 /* 미리보기 */
 .previewCol {
   position: sticky;
