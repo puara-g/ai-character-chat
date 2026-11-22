@@ -10,6 +10,12 @@ import styles from '@/components/browse.module.css';
 import { getNicknames, creatorLabel } from '@/lib/profiles';
 
 const PAGE_LIMIT = 100;
+// 검색 범위
+const SCOPES = [
+  { value: 'all', label: '전체', placeholder: '이름, 성격, 말투, 소개, 제작자로 검색' },
+  { value: 'name', label: '이름', placeholder: '캐릭터 이름으로 검색' },
+  { value: 'creator', label: '제작자', placeholder: '제작자 닉네임으로 검색' },
+];
 const FILTERS = ['전체', '다정함', '츤데레', '장난기 많음', '시크함', '활발함', '존댓말', '반말'];
 
 export default function ExplorePage() {
@@ -19,6 +25,7 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
+  const [scope, setScope] = useState('all');
   const [filter, setFilter] = useState('전체');
   const router = useRouter();
 
@@ -50,16 +57,14 @@ export default function ExplorePage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return characters.filter((c) => {
-      const creator = creatorLabel(c, nicknames) || '';
+      const creator = (creatorLabel(c, nicknames) || '').toLowerCase();
       const text = [c.name, c.personality, c.tone, c.detail, creator].filter(Boolean).join(' ').toLowerCase();
-      // '@닉네임' 으로 검색하면 제작자만 찾음
-      if (q.startsWith('@')) {
-        if (!creator.toLowerCase().includes(q.slice(1))) return false;
-      } else if (q && !text.includes(q)) return false;
+      const target = scope === 'name' ? (c.name || '').toLowerCase() : scope === 'creator' ? creator : text;
+      if (q && !target.includes(q)) return false;
       if (filter !== '전체' && !text.includes(filter.toLowerCase())) return false;
       return true;
     });
-  }, [characters, query, filter, nicknames]);
+  }, [characters, query, filter, nicknames, scope]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -79,16 +84,30 @@ export default function ExplorePage() {
         </div>
 
         <div className={styles.toolbar}>
+          <div className={styles.scope} role="radiogroup" aria-label="검색 범위">
+            {SCOPES.map((sc) => (
+              <button
+                key={sc.value}
+                type="button"
+                role="radio"
+                aria-checked={scope === sc.value}
+                className={`${styles.scopeBtn} ${scope === sc.value ? styles.scopeOn : ''}`}
+                onClick={() => setScope(sc.value)}
+              >
+                {sc.label}
+              </button>
+            ))}
+          </div>
           <label className={styles.searchWrap}>
-          <Search className={styles.searchIcon} size={18} aria-hidden="true" />
-          <input
-            className={styles.search}
-            type="search"
-            placeholder="이름, 성격, 말투, 제작자 닉네임으로 검색 (@닉네임은 제작자만)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="캐릭터 검색"
-          />
+            <Search className={styles.searchIcon} size={18} aria-hidden="true" />
+            <input
+              className={styles.search}
+              type="search"
+              placeholder={SCOPES.find((sc) => sc.value === scope).placeholder}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="캐릭터 검색"
+            />
           </label>
         </div>
         <div className={styles.chips}>

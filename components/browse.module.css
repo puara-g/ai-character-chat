@@ -515,6 +515,38 @@
   align-items: center;
 }
 
+.scope {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.scopeBtn {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scopeBtn:hover {
+  color: var(--ink);
+}
+
+.scopeOn,
+.scopeOn:hover {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
 .searchWrap {
   position: relative;
   flex: 1;
