@@ -34,6 +34,69 @@ const prompt = (query) => `사용자가 AI 채팅 캐릭터로 만들고 싶은 
 - detail: 작품 속 배경·관계·좋아하는 것을 300자 이내로, 큰 스포일러는 빼고.
 - age: 작품 기준 나이를 숫자만 (모르면 빈 문자열). gender: 여성/남성/기타 중 하나.`;
 
+// ---------- 후보 목록 ----------
+const LIST_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    queryIsRealPerson: { type: 'BOOLEAN' },
+    results: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING' },
+          work: { type: 'STRING' },
+          kind: { type: 'STRING', enum: ['애니', '만화', '웹툰', '드라마', '영화', '게임', '소설', '기타'] },
+          oneLine: { type: 'STRING' },
+          isRealPerson: { type: 'BOOLEAN' },
+        },
+        required: ['name', 'work', 'kind', 'oneLine', 'isRealPerson'],
+      },
+    },
+  },
+  required: ['queryIsRealPerson', 'results'],
+};
+
+const listPrompt = (query) => `검색어: "${query}"
+이 검색어에 맞는 작품 속 가상 캐릭터(애니·만화·웹툰·드라마·영화·게임·소설)를 잘 알려진 순서로 최대 6명 골라.
+- 이름 일부만 맞아도 돼. 작품명이 들어 있으면 그 작품의 주요 캐릭터들을 골라.
+- 확실히 아는 캐릭터만. 지어내지 마. 없으면 빈 배열.
+- 실존 인물(연예인, 아이돌, 배우, 유튜버, 버튜버, 정치인, 운동선수, 역사 인물 등)은 절대 넣지 마. 검색어 자체가 실존 인물을 가리키면 queryIsRealPerson=true.
+- name: 캐릭터 이름, work: 작품명, oneLine: 어떤 캐릭터인지 25자 이내, 큰 스포일러 없이.`;
+
+const searchList = async (q) => {
+  const res = await callGemini({
+    contents: [{ role: 'user', parts: [{ text: listPrompt(q) }] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: LIST_SCHEMA },
+  });
+  if (!res.ok) {
+    const busy = res.status === 429 || res.status === 503;
+    return Response.json(
+      { error: busy ? '지금 AI 서버에 사용자가 많아요. 잠시 후 다시 시도해 주세요.' : '검색하지 못했어요.' },
+      { status: busy ? 503 : 502 }
+    );
+  }
+  const data = parseJson(res.text) || {};
+  if (data.queryIsRealPerson) {
+    return Response.json(
+      { error: '실존 인물은 캐릭터로 만들 수 없어요. 작품 속 가상 캐릭터 이름을 적어 주세요.', reason: 'real_person' },
+      { status: 422 }
+    );
+  }
+  const seen = new Set();
+  const results = (Array.isArray(data.results) ? data.results : [])
+    .filter((r) => r && r.name && !r.isRealPerson)
+    .map((r) => ({
+      name: String(r.name).trim().slice(0, 40),
+      work: String(r.work || '').trim().slice(0, 40),
+      kind: String(r.kind || '기타'),
+      oneLine: String(r.oneLine || '').trim().slice(0, 40),
+    }))
+    .filter((r) => (seen.has(r.name + r.work) ? false : seen.add(r.name + r.work)))
+    .slice(0, 6);
+  return Response.json({ results });
+};
+
 const callGemini = async (body) => {
   const res = await fetch(API, {
     method: 'POST',
@@ -56,9 +119,12 @@ const parseJson = (text) => {
 
 export async function POST(req) {
   try {
-    const { query } = await req.json();
+    const { query, mode } = await req.json();
     const q = String(query || '').trim().slice(0, 60);
     if (q.length < 2) return Response.json({ error: '캐릭터 이름을 2글자 이상 적어 주세요.' }, { status: 400 });
+
+    // mode: 'search' → 후보 목록, 그 외 → 고른 캐릭터의 프로필
+    if (mode === 'search') return await searchList(q);
 
     let result = null;
     let grounded = false;
