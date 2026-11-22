@@ -9,6 +9,7 @@ import GuestNotice from '@/components/GuestNotice';
 import styles from './create.module.css';
 import { greetingFor, hasBatchim } from './greeting';
 import KakaoImport from './KakaoImport';
+import CharacterLookup from './CharacterLookup';
 import { attachVectors } from '@/lib/embed';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -56,6 +57,8 @@ export default function CreateCharacterPage() {
   const [kakao, setKakao] = useState(null); // { target, profile }
   const [consent, setConsent] = useState(false);
   const [progress, setProgress] = useState('');
+  // 작품 속 캐릭터를 불러왔으면 작품명 (저작권 안내용)
+  const [filledWork, setFilledWork] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -105,6 +108,18 @@ export default function CreateCharacterPage() {
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
     return data.publicUrl;
+  };
+
+  const handleLookupFill = (p) => {
+    setName(p.name);
+    if (p.gender) setGender(p.gender);
+    setAge(p.age || '');
+    setPersonality(p.personality || '');
+    setTone(p.tone || '');
+    setDetail((p.detail || '').slice(0, MAX_DETAIL));
+    setFilledWork(p.work || p.name);
+    // 다른 작품의 캐릭터는 저작권이 있어서 기본은 나만 보기
+    setIsPublic(false);
   };
 
   const handleKakaoPick = (picked) => {
@@ -236,6 +251,8 @@ export default function CreateCharacterPage() {
           </div>
 
           <form id="create-form" onSubmit={handleCreate} className={styles.form}>
+            {!isKakao && <CharacterLookup onFill={handleLookupFill} />}
+
             {isKakao && (
               <section className={styles.card}>
                 <h2 className={styles.cardTitle}>
@@ -446,6 +463,11 @@ export default function CreateCharacterPage() {
                 })}
               </div>
 
+              {!isKakao && !isGuest && filledWork && (
+                <p className={styles.visibilityNote}>
+                  {filledWork}의 캐릭터는 원작 저작권이 있어서 나만 보기를 추천해요.
+                </p>
+              )}
               {isKakao ? (
                 <p className={styles.visibilityNote}>
                   카톡 대화로 만든 캐릭터는 실제 사람의 말투가 담겨 있어서 항상 나만 볼 수 있어요.
