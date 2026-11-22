@@ -20,6 +20,8 @@ export default function ChatPage({ params }) {
 
   const [character, setCharacter] = useState(null);
   const [sessionId, setSessionId] = useState(null);
+  // 대화방 준비(이전 대화 불러오기·저장 공간 만들기)가 끝나기 전엔 보내지 않음
+  const [ready, setReady] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,7 @@ export default function ChatPage({ params }) {
       setCharacter(guestChar);
       memoryRef.current = getGuestMemory(characterId);
       setMessages(getGuestMessages(characterId));
+      setReady(true);
       return;
     }
 
@@ -75,45 +78,53 @@ export default function ChatPage({ params }) {
     if (!user) {
       setIsGuest(true);
       setMessages(getGuestMessages(characterId));
+      setReady(true);
       return;
     }
 
-    // 대화방은 사용자마다 따로
-    let { data: session } = await supabase
+    // 대화방은 사용자마다 따로. 예전 데이터에 같은 캐릭터 대화방이 여러 개 있으면
+    // 가장 오래된 것에 이어 쓰고, 불러올 때는 모두 합쳐서 보여줌
+    const { data: sessions } = await supabase
       .from('chat_sessions')
-      .select('*')
+      .select('id')
       .eq('character_id', characterId)
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: true });
 
-    if (!session) {
+    let sessionIds = (sessions || []).map((x) => x.id);
+    if (!sessionIds.length) {
       const { data: newSession } = await supabase
         .from('chat_sessions')
         .insert([{ character_id: characterId, user_id: user.id }])
-        .select()
+        .select('id')
         .single();
-      session = newSession;
+      if (newSession) sessionIds = [newSession.id];
     }
 
-    if (session) {
-      setSessionId(session.id);
+    if (sessionIds.length) {
+      setSessionId(sessionIds[0]);
 
       const { data: msgHistory } = await supabase
         .from('messages')
         .select('*')
-        .eq('session_id', session.id)
+        .in('session_id', sessionIds)
         .order('created_at', { ascending: true });
 
       if (msgHistory) setMessages(msgHistory);
+    } else {
+      setError('대화방을 만들지 못해서 이번 대화는 저장되지 않아요. 새로고침해 보세요.');
     }
+    setReady(true);
   };
 
+  // 같은 캐릭터로 준비 작업이 두 번 돌면 대화방이 두 개 생기므로 한 번만
+  const initedFor = useRef(null);
+
   useEffect(() => {
+    if (!characterId || initedFor.current === characterId) return;
+    initedFor.current = characterId;
     // 마운트 시 1회 데이터 불러오기 (외부 저장소와 동기화)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (characterId) initChat();
+    initChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]);
 
@@ -131,7 +142,7 @@ export default function ChatPage({ params }) {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || !ready) return;
     const userMsg = input;
     setInput('');
     setLoading(true);
@@ -202,7 +213,7 @@ export default function ChatPage({ params }) {
     .map((t) => t.trim())
     .filter(Boolean)
     .slice(0, 3);
-  const canSend = input.trim() && !loading;
+  const canSend = input.trim() && !loading && ready;
 
   return (
     <div className={styles.page}>
@@ -304,7 +315,8 @@ export default function ChatPage({ params }) {
             className={styles.input}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`${character.name}에게 메시지 보내기`}
+            placeholder={ready ? `${character.name}에게 메시지 보내기` : '대화 불러오는 중...'}
+            disabled={!ready}
             aria-label="메시지"
           />
           <button type="submit" className={styles.send} disabled={!canSend} aria-label="보내기">
