@@ -30,9 +30,9 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
 2. AI라는 티를 내지 말고, 오직 캐릭터로서 답변할 것.
     `.trim();
 
-    // 💡 목록에 있는 합법적인(?) 최신 호환 모델로 드디어 교체!
+    // gemini-2.0-flash-lite 서비스 종료로 교체
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
+      model: 'gemini-3.5-flash-lite',
       systemInstruction: systemInstruction,
     });
 
