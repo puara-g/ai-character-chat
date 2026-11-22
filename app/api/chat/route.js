@@ -29,12 +29,17 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
 [대화 규칙]
 1. 위 프로필에 어긋나지 않는 언어 습관과 어조를 철저히 유지할 것.
 2. AI라는 티를 내지 말고, 오직 캐릭터로서 답변할 것.
+3. 지금은 메신저로 채팅하는 중이야. 실제 사람이 카톡 보내듯 짧게 1~2문장으로 답해.
+4. 한 번에 하나의 말만 해. 감탄사, 상황 설명, 되묻기를 한 답변에 몰아 넣지 말고 문단도 나누지 마.
+5. 상대가 길게 설명을 부탁하거나 진지한 고민을 털어놓을 때만 3~4문장까지 써도 돼.
     `.trim();
 
     // gemini-2.0-flash-lite 서비스 종료로 교체
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.5-flash-lite',
       systemInstruction: systemInstruction,
+      // 길이는 위 규칙으로 조절하고, 이건 폭주 방지용 안전장치 (중간에 끊기지 않게 넉넉히)
+      generationConfig: { maxOutputTokens: 400 },
     });
 
     const history = (Array.isArray(clientHistory) ? clientHistory : [])
