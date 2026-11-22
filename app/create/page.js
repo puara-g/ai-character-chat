@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { addGuestCharacter } from '@/lib/guest';
 import GuestNotice from '@/components/GuestNotice';
 import styles from './create.module.css';
+import { greetingFor, hasBatchim } from './greeting';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const MAX_DETAIL = 500;
@@ -24,25 +25,12 @@ const readAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
-// 이름 끝 글자에 받침이 있는지 (이야/야, 이에요/예요 고르기)
-const hasBatchim = (word) => {
-  const code = word.charCodeAt(word.length - 1) - 0xac00;
-  return code >= 0 && code <= 11171 && code % 28 !== 0;
-};
-
 const splitTags = (text) =>
   text
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean);
 
-const greetingFor = (name, tone) => {
-  const n = name.trim() || '캐릭터';
-  if (/존댓|존대|요체/.test(tone)) {
-    return `안녕하세요! 저는 ${n}${hasBatchim(n) ? '이에요' : '예요'}. 만나서 반가워요 😊`;
-  }
-  return `안녕! 나는 ${n}${hasBatchim(n) ? '이야' : '야'}. 우리 얘기 많이 하자!`;
-};
 
 export default function CreateCharacterPage() {
   const [name, setName] = useState('');
@@ -363,7 +351,7 @@ export default function CreateCharacterPage() {
               </div>
               <div className={styles.bubbleRow}>
                 <img className={styles.bubbleAvatar} src={avatarSrc} alt="" />
-                <div className={styles.bubble}>{greetingFor(name, tone)}</div>
+                <div className={styles.bubble}>{greetingFor(name, tone, personalityTags)}</div>
               </div>
             </div>
           </div>
