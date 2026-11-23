@@ -165,7 +165,7 @@ export async function POST(req) {
     }
     if (!result.found || !result.name) {
       return Response.json(
-        { error: '캐릭터를 찾지 못했어요. 작품 이름을 같이 적어 보세요. (예: 원피스 루피)', reason: 'not_found' },
+        { error: '캐릭터를 찾지 못했어요. 작품 이름을 같이 적어 보세요.', reason: 'not_found' },
         { status: 404 }
       );
     }

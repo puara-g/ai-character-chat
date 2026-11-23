@@ -139,7 +139,7 @@ export default function LoginPage() {
                 id="nickname"
                 type="text"
                 className={styles.input}
-                placeholder="예: 캐릭터장인"
+                placeholder="닉네임"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 maxLength={12}
@@ -157,7 +157,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               className={styles.input}
-              placeholder="name@example.com"
+              placeholder="이메일 주소"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"

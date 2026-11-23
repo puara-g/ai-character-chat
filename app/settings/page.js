@@ -72,7 +72,7 @@ export default function SettingsPage() {
             className={styles.input}
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            placeholder={loading ? '불러오는 중...' : '예: 캐릭터장인'}
+            placeholder={loading ? '불러오는 중...' : '닉네임'}
             maxLength={12}
             disabled={loading}
             autoComplete="off"

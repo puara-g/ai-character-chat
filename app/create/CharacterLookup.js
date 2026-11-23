@@ -38,7 +38,7 @@ export default function CharacterLookup({ onFill }) {
       }
       setResults(data.results);
       if (!data.results.length) {
-        setMessage({ type: 'error', text: '맞는 캐릭터를 찾지 못했어요. 작품 이름을 같이 적어 보세요. (예: 원피스 루피)' });
+        setMessage({ type: 'error', text: '맞는 캐릭터를 찾지 못했어요. 작품 이름을 같이 적어 보세요.' });
       }
     } catch {
       setMessage({ type: 'error', text: '인터넷 연결을 확인하고 다시 시도해 주세요.' });
@@ -81,7 +81,7 @@ export default function CharacterLookup({ onFill }) {
       <div className={styles.lookupRow}>
         <input
           className={styles.input}
-          placeholder="예: 루피, 귀멸의 칼날, 우영우"
+          placeholder="캐릭터 또는 작품 이름"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {

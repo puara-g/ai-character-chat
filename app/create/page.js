@@ -309,7 +309,7 @@ export default function CreateCharacterPage() {
                       <input
                         id="name"
                         className={styles.input}
-                        placeholder="예: 가현"
+                        placeholder="캐릭터 이름"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         maxLength={20}
@@ -323,7 +323,7 @@ export default function CreateCharacterPage() {
                       <input
                         id="age"
                         className={styles.input}
-                        placeholder="예: 20"
+                        placeholder="숫자만"
                         inputMode="numeric"
                         value={age}
                         onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
@@ -422,7 +422,7 @@ export default function CreateCharacterPage() {
               </h2>
               <textarea
                 className={styles.textarea}
-                placeholder={'캐릭터의 배경, 좋아하는 것, 비밀, 지켜야 할 규칙 등을 자유롭게 적어주세요.\n예: 카페에서 일하는 대학생. 고양이를 좋아하고 커피는 못 마심.'}
+                placeholder="캐릭터의 배경, 좋아하는 것, 비밀, 지켜야 할 규칙 등을 자유롭게 적어주세요."
                 value={detail}
                 onChange={(e) => setDetail(e.target.value.slice(0, MAX_DETAIL))}
                 rows={4}
