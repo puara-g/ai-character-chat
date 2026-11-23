@@ -1,7 +1,7 @@
 'use client';
 
 import styles from './browse.module.css';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, MessageCircle, Star } from 'lucide-react';
 
 // 목록에서는 무거운 칸(style, memory_pairs)을 빼고 불러옴
 export const CARD_COLUMNS = 'id,name,gender,age,personality,tone,detail,avatar_url,is_public,user_id,created_at,source';
@@ -30,7 +30,7 @@ const splitTags = (text = '') =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-export default function CharacterCard({ character, onOpen, badge, badgeTone, footer, creator, rating, rank }) {
+export default function CharacterCard({ character, onOpen, badge, badgeTone, footer, creator, rating, rank, activity }) {
   const tags = splitTags(character.personality).slice(0, 3);
   const age = character.age ? `${character.age}${/^\d+$/.test(String(character.age)) ? '살' : ''}` : '';
   const meta = [character.gender, age].filter(Boolean).join(' · ');
@@ -63,6 +63,12 @@ export default function CharacterCard({ character, onOpen, badge, badgeTone, foo
         <h3 className={styles.name}>{character.name}</h3>
         <div className={styles.meta}>{meta}</div>
         {creator && <div className={styles.creator}>by {creator}</div>}
+        {activity && (
+          <div className={styles.activity}>
+            <MessageCircle size={13} aria-hidden="true" />
+            {activity}
+          </div>
+        )}
         {rating !== undefined && (
           <div className={styles.rating}>
             <Star className={rating?.count ? styles.starOn : styles.starOff} size={13} aria-hidden="true" />

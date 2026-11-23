@@ -1,0 +1,45 @@
+/* 랭킹. 값은 app/tokens.css 규칙만 사용 */
+
+.periods {
+  display: flex;
+  gap: var(--space-6);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.period {
+  position: relative;
+  padding: var(--space-2) 0 var(--space-3);
+  border: none;
+  background: none;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.period:hover {
+  color: var(--ink);
+}
+
+.periodOn {
+  color: var(--ink);
+}
+
+.periodOn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--ink);
+}
+
+.updated {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}

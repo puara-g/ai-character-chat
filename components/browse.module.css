@@ -298,6 +298,16 @@
   text-overflow: ellipsis;
 }
 
+.activity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--purple);
+}
+
 .rating {
   display: flex;
   align-items: center;
