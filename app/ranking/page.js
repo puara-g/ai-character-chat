@@ -8,7 +8,7 @@ import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import { getNicknames, creatorLabel } from '@/lib/profiles';
 import { getStats, rankScore } from '@/lib/reviews';
-import { PERIODS, getActivity, updatedLabel } from '@/lib/ranking';
+import { PERIODS, getActivity, updatedLabel, baseLabel } from '@/lib/ranking';
 import styles from '@/components/browse.module.css';
 import rankStyles from './ranking.module.css';
 
@@ -153,6 +153,10 @@ export default function RankingPage() {
             {updatedAt && (
               <>
                 <RefreshCw size={13} aria-hidden="true" />
+                <time dateTime={new Date(updatedAt).toISOString()} className={rankStyles.base}>
+                  {baseLabel(updatedAt)}
+                </time>
+                <span aria-hidden="true">·</span>
                 {updatedLabel(updatedAt, now)}
               </>
             )}

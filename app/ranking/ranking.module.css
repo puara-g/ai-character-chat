@@ -43,3 +43,8 @@
   font-size: var(--fs-sm);
   color: var(--muted);
 }
+
+.base {
+  font-weight: 600;
+  color: var(--ink-2);
+}
