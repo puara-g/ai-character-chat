@@ -40,12 +40,10 @@
 .brandMark {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #8e7ff5, var(--purple));
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
+  display: block;
 }
 
 .nav {
