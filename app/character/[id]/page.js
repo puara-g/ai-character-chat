@@ -75,7 +75,7 @@ export default function CharacterDetailPage({ params }) {
   if (status === 'missing') {
     return (
       <div className={styles.page}>
-        <AppHeader user={user} onLogout={handleLogout} />
+        <AppHeader user={user} onLogout={handleLogout} guest={!user} />
         <main className={styles.container}>
           <div className={styles.missing}>
             <p className={styles.missingTitle}>캐릭터를 찾을 수 없어요</p>
@@ -97,7 +97,7 @@ export default function CharacterDetailPage({ params }) {
 
   return (
     <div className={styles.page}>
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader user={user} onLogout={handleLogout} guest={!user} />
 
       <main className={styles.container}>
         <button type="button" className={styles.back} onClick={() => (window.history.length > 1 ? router.back() : router.push('/explore'))}>

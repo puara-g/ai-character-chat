@@ -5,7 +5,6 @@ import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
-import GuestNotice from '@/components/GuestNotice';
 import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
@@ -146,7 +145,7 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader user={user} onLogout={handleLogout} guest={!loading && !user} />
 
       <main className={styles.container}>
         <div className={styles.hero}>
@@ -162,7 +161,6 @@ export default function HomePage() {
           </button>
         </div>
 
-        {!loading && !user && <GuestNotice onLogin={() => router.push('/login?mode=signup')} />}
 
         {/* 내 캐릭터 */}
         <section className={`${styles.section} ${styles.sectionFirst}`}>

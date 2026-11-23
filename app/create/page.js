@@ -208,6 +208,8 @@ export default function CreateCharacterPage() {
   const kakaoSample = kakao?.profile.styleExamples.find((t) => t.length >= 4 && t.length <= 40);
 
   return (
+    <>
+    {isGuest && <GuestNotice />}
     <div className={styles.page}>
       <div className={styles.topbar}>
         <button type="button" className={styles.back} onClick={() => router.push('/')}>
@@ -223,10 +225,6 @@ export default function CreateCharacterPage() {
 
       <div className={styles.layout}>
         <div>
-          {isGuest && (
-            <GuestNotice onLogin={() => router.push('/login?mode=signup')} />
-          )}
-
           <div className={styles.modeTabs} role="tablist" aria-label="만드는 방법">
             <button
               type="button"
@@ -534,5 +532,6 @@ export default function CreateCharacterPage() {
         </button>
       </div>
     </div>
+    </>
   );
 }

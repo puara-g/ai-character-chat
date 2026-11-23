@@ -217,6 +217,7 @@ export default function ChatPage({ params }) {
 
   return (
     <div className={styles.page}>
+      {isGuest && <GuestNotice what="이 대화는" />}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <button type="button" className={styles.back} onClick={() => router.push('/')} aria-label="목록으로">
@@ -246,9 +247,6 @@ export default function ChatPage({ params }) {
 
       <main className={styles.messages} ref={scrollRef}>
         <div className={styles.thread}>
-          {isGuest && (
-            <GuestNotice what="이 대화는" onLogin={() => router.push('/login?mode=signup')} />
-          )}
 
           <div className={styles.intro}>
             <img className={styles.introAvatar} src={profileImage} alt="" onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />

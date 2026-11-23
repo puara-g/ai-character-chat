@@ -73,7 +73,7 @@ export default function ExplorePage() {
 
   return (
     <div className={styles.page}>
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader user={user} onLogout={handleLogout} guest={!loading && !user} />
 
       <main className={styles.container}>
         <div className={styles.hero}>

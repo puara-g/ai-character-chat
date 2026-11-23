@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { UserRound } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { getMyProfile } from '@/lib/profiles';
+import GuestNotice from './GuestNotice';
 import styles from './browse.module.css';
 
-export default function AppHeader({ user, onLogout }) {
+export default function AppHeader({ user, onLogout, guest = false }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [nickname, setNickname] = useState('');
 
   useEffect(() => {
@@ -28,45 +28,40 @@ export default function AppHeader({ user, onLogout }) {
   ];
 
   return (
-    <header className={styles.header}>
-      <div className={styles.headerInner}>
-        <Link href="/" className={styles.brand}>
-          <img className={styles.brandMark} src="/logo.png" alt="" width={32} height={32} />
-          <span className={styles.brandText}>AI 캐릭터</span>
-        </Link>
+    <>
+      {guest && <GuestNotice />}
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brand}>
+            <img className={styles.brandMark} src="/logo.png" alt="" width={32} height={32} />
+            <span className={styles.brandText}>AI 캐릭터</span>
+          </Link>
 
-        <nav className={styles.nav}>
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`${styles.navLink} ${pathname === l.href ? styles.navActive : ''}`}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+          <nav className={styles.nav}>
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`${styles.navLink} ${pathname === l.href ? styles.navActive : ''}`}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
 
-        {user ? (
-          <div className={styles.headerUser}>
-            <Link href="/settings" className={styles.profileLink} title="닉네임 설정">
-              <UserRound size={16} aria-hidden="true" />
-              <span className={styles.profileName}>{user.id && nickname ? nickname : '닉네임 설정'}</span>
-            </Link>
-            <button type="button" className={styles.headerBtn} onClick={onLogout}>
-              로그아웃
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={`${styles.headerBtn} ${styles.headerBtnPrimary}`}
-            onClick={() => router.push('/login')}
-          >
-            로그인
-          </button>
-        )}
-      </div>
-    </header>
+          {user ? (
+            <div className={styles.headerUser}>
+              <Link href="/settings" className={styles.profileLink} title="닉네임 설정">
+                <UserRound size={16} aria-hidden="true" />
+                <span className={styles.profileName}>{user.id && nickname ? nickname : '닉네임 설정'}</span>
+              </Link>
+              <button type="button" className={styles.headerBtn} onClick={onLogout}>
+                로그아웃
+              </button>
+            </div>
+          ) : null /* 로그인 전에는 맨 위 체험 안내 띠의 버튼 하나로 로그인 */}
+        </div>
+      </header>
+    </>
   );
 }
