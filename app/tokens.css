@@ -61,6 +61,8 @@
   --warn-line: #ffe2a8;
   --warn-ink: #6b5b2e;
   --star: #f5a524;
+  --affinity: #f0568c;
+  --affinity-soft: #fdeef4;
 
   /* 그림자는 최소로: 영역 구분은 테두리, 그림자는 hover와 작은 손잡이에만 */
   --border-card: 1px solid var(--line-soft);

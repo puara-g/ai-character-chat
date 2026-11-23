@@ -1,0 +1,148 @@
+/* 호감도 게이지. 값은 app/tokens.css 규칙만 사용 */
+
+.wrap {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.bar {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.heart {
+  flex-shrink: 0;
+  color: var(--affinity);
+  fill: var(--affinity);
+}
+
+.level {
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--gray-1);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--affinity);
+  transition: width 0.4s ease;
+}
+
+.score {
+  flex-shrink: 0;
+  min-width: 24px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.delta {
+  position: absolute;
+  right: var(--space-12);
+  top: -2px;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  animation: floatUp 1.4s ease forwards;
+  pointer-events: none;
+}
+
+.up {
+  color: var(--affinity);
+}
+
+.down {
+  color: var(--muted);
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.panelTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.memories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.memories li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--affinity-soft);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.empty,
+.help {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.help {
+  margin-top: var(--space-3);
+  font-size: var(--fs-xs);
+}

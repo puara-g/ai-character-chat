@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, use } from 'react';
-import { ArrowLeft, ArrowUp } from 'lucide-react';
+import { ArrowLeft, ArrowUp, Heart } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { isGuestId, getGuestCharacter, getGuestMessages, setGuestMessages, getGuestMemory } from '@/lib/guest';
 import { findMemories } from '@/lib/kakao';
 import { embedTexts } from '@/lib/embed';
 import GuestNotice from '@/components/GuestNotice';
+import AffinityBar from '@/components/AffinityBar';
+import { loadAffinity, saveAffinity, levelOf, romanceAllowed, clampScore, mergeMemories, computeUserStyle } from '@/lib/affinity';
+import { hasBatchim } from '@/app/create/greeting';
 import styles from './chat.module.css';
 
 // 프로필 이미지가 없을 때 띄울 기본 이미지
@@ -31,6 +34,11 @@ export default function ChatPage({ params }) {
   const scrollRef = useRef(null);
   // 카톡 캐릭터의 '상대 말 → 실제 대답' 쌍 (화면 상태와 무관해서 ref로 보관)
   const memoryRef = useRef([]);
+  // 호감도 모드 (로그인하면 DB, 아니면 이 탭에 저장)
+  const [userId, setUserId] = useState(null);
+  const [affinity, setAffinity] = useState(null);
+  const [affinityOpen, setAffinityOpen] = useState(false);
+  const [deltaFx, setDeltaFx] = useState({ value: 0, key: 0 });
 
   // 새 메시지가 오면 맨 아래로
   useEffect(() => {
@@ -51,6 +59,7 @@ export default function ChatPage({ params }) {
       setCharacter(guestChar);
       memoryRef.current = getGuestMemory(characterId);
       setMessages(getGuestMessages(characterId));
+      setAffinity(await loadAffinity({ userId: null, characterId }));
       setReady(true);
       return;
     }
@@ -78,9 +87,13 @@ export default function ChatPage({ params }) {
     if (!user) {
       setIsGuest(true);
       setMessages(getGuestMessages(characterId));
+      setAffinity(await loadAffinity({ userId: null, characterId }));
       setReady(true);
       return;
     }
+
+    setUserId(user.id);
+    setAffinity(await loadAffinity({ userId: user.id, characterId }));
 
     // 대화방은 사용자마다 따로. 예전 데이터에 같은 캐릭터 대화방이 여러 개 있으면
     // 가장 오래된 것에 이어 쓰고, 불러올 때는 모두 합쳐서 보여줌
@@ -141,6 +154,31 @@ export default function ChatPage({ params }) {
     return findMemories(pairs, text, { queryVec });
   };
 
+  const toggleAffinity = async () => {
+    const next = { ...affinity, enabled: !affinity.enabled };
+    setAffinity(next);
+    setAffinityOpen(false);
+    await saveAffinity({ userId, characterId, affinity: next });
+  };
+
+  // 답장과 함께 온 호감도 변화 반영 + 단계가 오르면 대화창에 알림
+  const applyAffinity = async (result, allMessages) => {
+    if (!result || !affinity?.enabled) return null;
+    const romance = romanceAllowed(character);
+    const before = levelOf(affinity.score, romance);
+    const next = {
+      ...affinity,
+      score: clampScore(affinity.score + result.delta),
+      memories: mergeMemories(affinity.memories, result.newMemories),
+      user_style: computeUserStyle(allMessages) || affinity.user_style,
+    };
+    setAffinity(next);
+    if (result.delta) setDeltaFx((d) => ({ value: result.delta, key: d.key + 1 }));
+    await saveAffinity({ userId, characterId, affinity: next });
+    const after = levelOf(next.score, romance);
+    return after.index > before.index ? levelUpText(character.name, after.name) : null;
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading || !ready) return;
     const userMsg = input;
@@ -159,8 +197,11 @@ export default function ChatPage({ params }) {
         body: JSON.stringify({
           message: userMsg,
           character,
-          history: messages.slice(-10),
+          history: messages.filter((m) => m.sender !== 'system').slice(-10),
           memories,
+          affinity: affinity?.enabled
+            ? { score: affinity.score, memories: affinity.memories, userStyle: affinity.user_style }
+            : undefined,
         }),
       });
 
@@ -182,8 +223,10 @@ export default function ChatPage({ params }) {
           ]);
           if (error) console.error('대화 저장 실패:', error);
         } else {
-          setGuestMessages(characterId, updated);
+          setGuestMessages(characterId, updated.filter((m) => m.sender !== 'system'));
         }
+        const note = await applyAffinity(data.affinity, updated);
+        if (note) setMessages((prev) => [...prev, { sender: 'system', content: note }]);
       } else if (data.error) {
         setError(data.error);
       }
@@ -242,8 +285,30 @@ export default function ChatPage({ params }) {
               <span className={styles.headerMeta}>{[tags.join(', '), character.tone].filter(Boolean).join(' · ')}</span>
             </span>
           </button>
+          {affinity && (
+            <button
+              type="button"
+              className={`${styles.affinityBtn} ${affinity.enabled ? styles.affinityOn : ''}`}
+              onClick={toggleAffinity}
+              aria-pressed={affinity.enabled}
+              title={affinity.enabled ? '호감도 모드 끄기' : '호감도 모드 켜기'}
+            >
+              <Heart size={16} aria-hidden="true" />
+              <span className={styles.affinityLabel}>호감도</span>
+            </button>
+          )}
         </div>
       </header>
+      {affinity?.enabled && (
+        <AffinityBar
+          affinity={affinity}
+          romance={romanceAllowed(character)}
+          delta={deltaFx.value}
+          deltaKey={deltaFx.key}
+          open={affinityOpen}
+          onToggle={() => setAffinityOpen((o) => !o)}
+        />
+      )}
 
       <main className={styles.messages} ref={scrollRef}>
         <div className={styles.thread}>
@@ -261,6 +326,14 @@ export default function ChatPage({ params }) {
           </div>
 
           {messages.map((m, i) => {
+            if (m.sender === 'system') {
+              return (
+                <p key={`sys-${i}`} className={styles.systemNote}>
+                  <Heart size={14} aria-hidden="true" />
+                  {m.content}
+                </p>
+              );
+            }
             const isUser = m.sender === 'user';
             const firstOfGroup = i === 0 || messages[i - 1].sender !== m.sender;
             return (
@@ -325,3 +398,17 @@ export default function ChatPage({ params }) {
     </div>
   );
 }
+
+// 호감도 단계가 올랐을 때 대화창 알림
+const levelUpText = (name, level) => {
+  const wa = hasBatchim(name) ? '과' : '와';
+  const map = {
+    '아는 사이': `${name}${wa} 아는 사이가 됐어요`,
+    친구: `${name}${wa} 친구가 됐어요`,
+    설렘: `${name}의 마음이 설레기 시작했어요`,
+    '특별한 사이': `${name}에게 특별한 사람이 됐어요`,
+    절친: `${name}${wa} 절친이 됐어요`,
+    '베스트 프렌드': `${name}${wa} 베스트 프렌드가 됐어요`,
+  };
+  return map[level] || `${name}${wa} 더 가까워졌어요`;
+};

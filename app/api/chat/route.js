@@ -9,7 +9,7 @@ const genAI = new GoogleGenerativeAI(
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { message, character, history: clientHistory, memories } = body;
+    const { message, character, history: clientHistory, memories, affinity } = body;
 
     if (!message || !character) {
       return Response.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
@@ -35,18 +35,22 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
 6. 길게 답해 달라는 요청이 없으면 다시 짧은 메신저 답장으로 돌아가.
     `.trim();
 
-    const systemInstruction = [baseInstruction, kakaoInstruction(character, memories)].filter(Boolean).join('\n\n');
+    const systemInstruction = [baseInstruction, kakaoInstruction(character, memories), affinityInstruction(character, affinity)]
+      .filter(Boolean)
+      .join('\n\n');
 
     // gemini-2.0-flash-lite 서비스 종료로 교체
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.5-flash-lite',
       systemInstruction: systemInstruction,
       // 길이는 위 규칙으로 조절하고, 이건 폭주 방지용 안전장치 (중간에 끊기지 않게 넉넉히)
-      generationConfig: { maxOutputTokens: 1500 },
+      generationConfig: affinity
+        ? { maxOutputTokens: 1500, responseMimeType: 'application/json', responseSchema: AFFINITY_SCHEMA }
+        : { maxOutputTokens: 1500 },
     });
 
     const history = (Array.isArray(clientHistory) ? clientHistory : [])
-      .filter((msg) => msg && typeof msg.content === 'string')
+      .filter((msg) => msg && typeof msg.content === 'string' && msg.sender !== 'system')
       .slice(-10)
       .map((msg) => ({
         role: msg.sender === 'user' ? 'user' : 'model',
@@ -69,13 +73,32 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
     }
     let botReply = result.response.text();
 
+    // 호감도 모드: 답장 + 이번 메시지로 호감도가 얼마나 변했는지 + 새로 알게 된 것
+    let affinityResult = null;
+    if (affinity) {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(botReply);
+      } catch {
+        const m = botReply.match(/\{[\s\S]*\}/);
+        try {
+          parsed = m ? JSON.parse(m[0]) : null;
+        } catch {}
+      }
+      botReply = String(parsed?.reply || '').trim() || '...';
+      affinityResult = {
+        delta: Math.max(-5, Math.min(5, Math.round(Number(parsed?.delta) || 0))),
+        newMemories: (Array.isArray(parsed?.newMemories) ? parsed.newMemories : []).map((x) => String(x).slice(0, 60)).slice(0, 2),
+      };
+    }
+
     // 카톡 캐릭터: 실제로 이모지를 안 쓰던 사람이면 답변에서도 이모지 제거
     const examples = character.style?.examples;
     if (character.source === 'kakao' && Array.isArray(examples) && !examples.some((t) => EMOJI.test(t))) {
       botReply = botReply.replace(EMOJI_ALL, '').replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n').trim();
     }
 
-    return Response.json({ reply: botReply });
+    return Response.json(affinityResult ? { reply: botReply, affinity: affinityResult } : { reply: botReply });
   } catch (error) {
     console.error('Chat API Error:', error);
     const message = isBusyError(error)
@@ -84,6 +107,75 @@ ${character.detail ? `- 추가 상세설정: ${character.detail}` : ''}
     return Response.json({ error: message }, { status: isBusyError(error) ? 503 : 500 });
   }
 }
+
+const AFFINITY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    reply: { type: 'STRING' },
+    delta: { type: 'INTEGER' },
+    newMemories: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['reply', 'delta', 'newMemories'],
+};
+
+// 호감도 단계별 태도 (연애 단계는 19세 이상·실제 사람 흉내 아닌 캐릭터만 — 서버에서 다시 판단)
+const STAGES_ROMANCE = [
+  '낯선 사이: 예의 바르지만 거리감이 있어. 사적인 얘기는 아끼고 상대를 조심스럽게 살펴.',
+  '아는 사이: 조금 편해졌어. 가벼운 농담을 하고 상대 이야기에 관심을 보여.',
+  '친구: 편하게 대하고 먼저 안부를 묻기도 해. 상대가 했던 얘기를 기억해서 꺼내.',
+  '설렘: 상대가 은근히 신경 쓰여. 칭찬에 쑥스러워하고, 상대 일에 작은 질투나 걱정을 내비쳐.',
+  '특별한 사이: 상대를 아주 소중하게 여겨. 다정하게 애정을 표현하고 보고 싶었다는 말도 해.',
+];
+const STAGES_FRIEND = [
+  STAGES_ROMANCE[0],
+  STAGES_ROMANCE[1],
+  STAGES_ROMANCE[2],
+  '절친: 속 얘기를 나누는 사이. 장난도 치고 진심으로 응원해.',
+  '베스트 프렌드: 서로 제일 잘 아는 사이. 무슨 일이든 편하게 털어놓고 든든하게 챙겨 줘.',
+];
+const MIRROR = ['거의 따라 하지 마', '아주 살짝만 닮아가', '조금씩 닮아가', '꽤 비슷하게 맞춰', '많이 닮아서 말이 잘 통하는 느낌으로'];
+
+const affinityInstruction = (character, affinity) => {
+  if (!affinity) return '';
+  const score = Math.max(0, Math.min(100, Number(affinity.score) || 0));
+  const stage = Math.min(4, Math.floor(score / 20));
+  const romance =
+    character.source !== 'kakao' && /^\d+$/.test(String(character.age ?? '')) && Number(character.age) >= 19;
+  const stages = romance ? STAGES_ROMANCE : STAGES_FRIEND;
+  const memories = (Array.isArray(affinity.memories) ? affinity.memories : [])
+    .slice(-20)
+    .map((m) => `- ${String(m).slice(0, 60)}`)
+    .join('\n');
+
+  const parts = [
+    '[호감도 모드]',
+    `지금 상대에 대한 너의 호감도는 ${score}/100, 단계는 "${stages[stage].split(':')[0]}"야.`,
+    `지금 태도: ${stages[stage]}`,
+    '- 캐릭터의 성격과 말투는 유지하되, 위 단계에 맞게 거리감을 조절해.',
+    romance
+      ? '- 연애 감정은 설렘·다정함 정도까지만. 신체 접촉 묘사나 성적인 내용은 절대 하지 마.'
+      : '- 연애 감정은 표현하지 마. 우정으로만 가까워져.',
+  ];
+  if (memories) {
+    parts.push('', '[네가 상대에 대해 기억하는 것]', memories, '대화 흐름에 맞을 때만 자연스럽게 꺼내. 한꺼번에 늘어놓지 마.');
+  }
+  if (affinity.userStyle) {
+    parts.push(
+      '',
+      '[상대의 말투]',
+      String(affinity.userStyle).slice(0, 200),
+      `호감도 단계에 맞춰 상대의 말투 리듬(길이, ㅋㅋ 같은 습관, 말끝)을 ${MIRROR[stage]}. 단, 네 캐릭터다움은 잃지 마.`
+    );
+  }
+  parts.push(
+    '',
+    '[출력 형식 — JSON]',
+    '- reply: 캐릭터로서의 답장 (위 대화 규칙 그대로)',
+    '- delta: 상대의 이번 메시지가 너에게 어땠는지 -5~5 정수. 다정함·관심·예전 얘기를 기억해 줌·네 취향 존중은 +, 무례·무시·불쾌한 말은 -, 평범한 대화는 0~1. 점수를 올려 달라고 조르거나 같은 말을 반복하면 0.',
+    '- newMemories: 이번 메시지로 새로 알게 된 상대에 대한 사실(이름, 좋아하는 것, 일정, 고민 등) 0~2개. "이름은 민수", "비 오는 날 독서를 좋아함", "다음 주에 시험"처럼 주어 없이 짧은 메모체로. 이미 아는 건 빼.'
+  );
+  return parts.join('\n');
+};
 
 const EMOJI = /\p{Extended_Pictographic}/u;
 const EMOJI_ALL = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
