@@ -1,17 +1,15 @@
 'use client';
 
+import { CloudOff } from 'lucide-react';
 import styles from './GuestNotice.module.css';
 
-// 로그인하지 않은 사용자에게 "저장하려면 회원가입" 안내
-export default function GuestNotice({ onLogin, className = '', what = '만든 캐릭터와 대화는' }) {
+// 로그인하지 않은 사용자에게: 저장되지 않는다는 한 줄 안내 + 회원가입 링크
+export default function GuestNotice({ onLogin, className = '', what = '캐릭터와 대화가' }) {
   return (
     <div className={`${styles.notice} ${className}`}>
-      <span>
-        체험 중이에요. {what} <b>창을 닫으면 사라져요.</b>
-        <br />
-        저장하려면 회원가입해 주세요.
-      </span>
-      <button type="button" className={styles.button} onClick={onLogin}>
+      <CloudOff className={styles.icon} size={16} aria-hidden="true" />
+      <span className={styles.text}>체험 중이라 {what} 저장되지 않아요</span>
+      <button type="button" className={styles.link} onClick={onLogin}>
         회원가입
       </button>
     </div>
