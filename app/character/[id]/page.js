@@ -10,6 +10,7 @@ import { getNicknames, creatorLabel } from '@/lib/profiles';
 import AppHeader from '@/components/AppHeader';
 import { CARD_COLUMNS, DEFAULT_AVATAR, coverFor } from '@/components/CharacterCard';
 import { hasBatchim } from '@/app/create/greeting';
+import Reviews, { StarRow } from '@/components/Reviews';
 import styles from './detail.module.css';
 
 const splitTags = (text = '') =>
@@ -25,6 +26,7 @@ export default function CharacterDetailPage({ params }) {
   const [character, setCharacter] = useState(null);
   const [creator, setCreator] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | ready | missing
+  const [stat, setStat] = useState(null); // 리뷰 요약 { count, avg }
 
   const load = async () => {
     let me = null;
@@ -94,6 +96,10 @@ export default function CharacterDetailPage({ params }) {
   const meta = [character.gender, age].filter(Boolean).join(' · ');
   const isMine = (user && character.user_id === user.id) || isGuestId(character.id);
   const isKakao = character.source === 'kakao';
+  // 리뷰는 공개 캐릭터에만 (체험·카톡·비공개 캐릭터 제외)
+  const reviewable = character.is_public && !isGuestId(character.id);
+  const canWrite = reviewable && Boolean(user) && character.user_id !== user.id;
+  const blockedReason = !reviewable ? null : !user ? 'login' : character.user_id === user.id ? 'own' : null;
 
   return (
     <div className={styles.page}>
@@ -138,6 +144,20 @@ export default function CharacterDetailPage({ params }) {
             <h1 className={styles.name}>{character.name}</h1>
             {meta && <p className={styles.meta}>{meta}</p>}
 
+            {reviewable && (
+              <p className={styles.ratingLine}>
+                {stat?.count ? (
+                  <>
+                    <StarRow value={stat.avg} size={16} />
+                    <b>{stat.avg.toFixed(1)}</b>
+                    <span>리뷰 {stat.count}개</span>
+                  </>
+                ) : (
+                  <span>아직 리뷰가 없어요</span>
+                )}
+              </p>
+            )}
+
             {creator && (
               <p className={styles.creator}>
                 <UserRound size={14} aria-hidden="true" />
@@ -175,6 +195,16 @@ export default function CharacterDetailPage({ params }) {
             </button>
           </div>
         </article>
+
+        {reviewable && (
+          <Reviews
+            characterId={character.id}
+            user={user}
+            canWrite={canWrite}
+            blockedReason={blockedReason}
+            onStatsChange={setStat}
+          />
+        )}
       </main>
     </div>
   );

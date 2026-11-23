@@ -1,0 +1,256 @@
+/* 캐릭터 리뷰. 값은 app/tokens.css 규칙만 사용 */
+
+.section {
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}
+
+.count {
+  margin-left: var(--space-1);
+  color: var(--purple);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-lg);
+}
+
+.starRow {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.on {
+  color: var(--star);
+  fill: var(--star);
+}
+
+.off {
+  color: var(--line);
+  fill: var(--line);
+}
+
+.writeBtn {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--purple-line);
+  border-radius: var(--radius-md);
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.writeBtn:hover {
+  border-color: var(--purple);
+}
+
+.blocked {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.inlineLink {
+  color: var(--purple);
+  font-weight: 700;
+}
+
+/* 쓰기 */
+.form {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.pickStar {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.pickLabel {
+  margin-left: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+}
+
+.textarea:focus {
+  border-color: var(--purple);
+  background: #fff;
+  box-shadow: var(--focus-ring);
+}
+
+.formFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.counter {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.formBtns {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.primaryBtn,
+.ghostBtn,
+.dangerBtn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: none;
+  background: var(--purple);
+  color: #fff;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: var(--purple-dark);
+}
+
+.primaryBtn:disabled {
+  background: var(--purple-disabled);
+  cursor: not-allowed;
+}
+
+.ghostBtn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-2);
+}
+
+.dangerBtn {
+  border: none;
+  background: none;
+  color: var(--danger);
+}
+
+.error {
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--danger);
+}
+
+/* 목록 */
+.empty {
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  text-align: center;
+}
+
+.list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.item {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.me {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-size: var(--fs-xs);
+  line-height: 20px;
+}
+
+.date {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.itemText {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: var(--space-5);
+  }
+}

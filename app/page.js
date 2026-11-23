@@ -9,6 +9,7 @@ import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
 import { getNicknames, creatorLabel } from '@/lib/profiles';
+import { getStats } from '@/lib/reviews';
 
 const PUBLIC_PREVIEW_COUNT = 8;
 
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [characters, setCharacters] = useState([]);
   const [publicCharacters, setPublicCharacters] = useState([]);
   const [nicknames, setNicknames] = useState({});
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -33,7 +35,9 @@ export default function HomePage() {
     }
     const list = (data || []).filter((c) => !me || c.user_id !== me.id).slice(0, PUBLIC_PREVIEW_COUNT);
     setPublicCharacters(list);
-    setNicknames(await getNicknames(list.map((c) => c.user_id)));
+    const [names, st] = await Promise.all([getNicknames(list.map((c) => c.user_id)), getStats(list.map((c) => c.id))]);
+    setNicknames(names);
+    setStats(st);
   };
 
   const load = async () => {
@@ -225,6 +229,7 @@ export default function HomePage() {
                   key={char.id}
                   character={char}
                   creator={creatorLabel(char, nicknames)}
+                  rating={stats[char.id] || null}
                   onOpen={() => router.push(`/character/${char.id}`)}
                 />
               ))}

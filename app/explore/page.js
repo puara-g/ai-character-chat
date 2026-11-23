@@ -8,6 +8,7 @@ import AppHeader from '@/components/AppHeader';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
 import { getNicknames, creatorLabel } from '@/lib/profiles';
+import { getStats, rankScore } from '@/lib/reviews';
 
 const PAGE_LIMIT = 100;
 // 검색 범위
@@ -16,12 +17,20 @@ const SCOPES = [
   { value: 'name', label: '이름', placeholder: '캐릭터 이름으로 검색' },
   { value: 'creator', label: '제작자', placeholder: '제작자 닉네임으로 검색' },
 ];
+// 정렬 (별점순일 때는 카드에 순위 표시 = 랭킹)
+const SORTS = [
+  { value: 'rating', label: '별점순' },
+  { value: 'reviews', label: '리뷰 많은순' },
+  { value: 'latest', label: '최신순' },
+];
 const FILTERS = ['전체', '다정함', '츤데레', '장난기 많음', '시크함', '활발함', '존댓말', '반말'];
 
 export default function ExplorePage() {
   const [user, setUser] = useState(null);
   const [characters, setCharacters] = useState([]);
   const [nicknames, setNicknames] = useState({});
+  const [stats, setStats] = useState({});
+  const [sort, setSort] = useState('rating');
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -48,7 +57,10 @@ export default function ExplorePage() {
         setFailed(true);
       } else {
         setCharacters(data || []);
-        setNicknames(await getNicknames((data || []).map((c) => c.user_id)));
+        const list = data || [];
+        const [names, st] = await Promise.all([getNicknames(list.map((c) => c.user_id)), getStats(list.map((c) => c.id))]);
+        setNicknames(names);
+        setStats(st);
       }
       setLoading(false);
     })();
@@ -56,7 +68,7 @@ export default function ExplorePage() {
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return characters.filter((c) => {
+    const list = characters.filter((c) => {
       const creator = (creatorLabel(c, nicknames) || '').toLowerCase();
       const text = [c.name, c.personality, c.tone, c.detail, creator].filter(Boolean).join(' ').toLowerCase();
       const target = scope === 'name' ? (c.name || '').toLowerCase() : scope === 'creator' ? creator : text;
@@ -64,7 +76,11 @@ export default function ExplorePage() {
       if (filter !== '전체' && !text.includes(filter.toLowerCase())) return false;
       return true;
     });
-  }, [characters, query, filter, nicknames, scope]);
+    const byLatest = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+    if (sort === 'latest') return list.sort(byLatest);
+    if (sort === 'reviews') return list.sort((a, b) => (stats[b.id]?.count || 0) - (stats[a.id]?.count || 0) || byLatest(a, b));
+    return list.sort((a, b) => rankScore(stats[b.id]) - rankScore(stats[a.id]) || byLatest(a, b));
+  }, [characters, query, filter, nicknames, scope, sort, stats]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -123,6 +139,24 @@ export default function ExplorePage() {
           ))}
         </div>
 
+        <div className={styles.sortRow}>
+          <span className={styles.resultCount}>{loading ? '' : `캐릭터 ${visible.length}개`}</span>
+          <div className={styles.sortTabs} role="radiogroup" aria-label="정렬">
+            {SORTS.map((so) => (
+              <button
+                key={so.value}
+                type="button"
+                role="radio"
+                aria-checked={sort === so.value}
+                className={`${styles.sortTab} ${sort === so.value ? styles.sortTabOn : ''}`}
+                onClick={() => setSort(so.value)}
+              >
+                {so.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {loading ? (
           <div className={styles.grid}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -133,11 +167,13 @@ export default function ExplorePage() {
           <div className={styles.empty}>캐릭터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div>
         ) : visible.length ? (
           <div className={styles.grid}>
-            {visible.map((char) => (
+            {visible.map((char, i) => (
               <CharacterCard
                 key={char.id}
                 character={char}
                 creator={creatorLabel(char, nicknames)}
+                rating={stats[char.id] || null}
+                rank={sort === 'rating' && stats[char.id]?.count ? i + 1 : undefined}
                 onOpen={() => router.push(`/character/${char.id}`)}
                 badge={user && char.user_id === user.id ? '내 캐릭터' : null}
               />
