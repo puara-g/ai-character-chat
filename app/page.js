@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getGuestCharacters, removeGuestCharacter, isGuestId } from '@/lib/guest';
 import AppHeader from '@/components/AppHeader';
+import HomeBanner from '@/components/HomeBanner';
 import CharacterCard, { CARD_COLUMNS } from '@/components/CharacterCard';
 import styles from '@/components/browse.module.css';
 import { getNicknames, creatorLabel } from '@/lib/profiles';
@@ -152,19 +153,11 @@ export default function HomePage() {
       <AppHeader user={user} onLogout={handleLogout} guest={!loading && !user} />
 
       <main className={styles.container}>
-        <div className={styles.hero}>
-          <div>
-            <h1 className={styles.heroTitle}>오늘은 누구랑 이야기할까요?</h1>
-            <p className={styles.heroSub}>
-              {user ? '내가 만든 캐릭터와 대화하거나, 다른 사람들의 캐릭터를 만나보세요.' : '로그인 없이도 캐릭터를 만들고 대화할 수 있어요.'}
-            </p>
-          </div>
-          <button type="button" className={styles.primaryBtn} onClick={() => router.push('/create')}>
-            <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-            새 캐릭터
-          </button>
-        </div>
-
+        <HomeBanner
+          user={user}
+          onCreate={() => router.push('/create')}
+          onExplore={() => router.push('/explore')}
+        />
 
         {/* 내 캐릭터 */}
         <section className={`${styles.section} ${styles.sectionFirst}`}>
