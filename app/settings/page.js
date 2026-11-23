@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { getMyProfile, saveNickname, checkNickname, NICKNAME_HINT } from '@/lib/profiles';
+import { getMyProfile, saveNickname, NICKNAME_HINT } from '@/lib/profiles';
+import useNicknameCheck from '@/lib/useNicknameCheck';
 import AppHeader from '@/components/AppHeader';
 import styles from './settings.module.css';
 
@@ -62,7 +63,9 @@ export default function SettingsPage() {
     router.push('/');
   };
 
-  const formatProblem = nickname.trim() ? checkNickname(nickname) : '';
+  // 입력하는 동안 형식·중복 확인
+  const nickCheck = useNicknameCheck(nickname, { myId: user?.id, current: saved });
+  const blocked = ['invalid', 'taken', 'checking'].includes(nickCheck.status);
   const unchanged = nickname.trim() === saved;
 
   return (
@@ -86,7 +89,12 @@ export default function SettingsPage() {
             disabled={loading}
             autoComplete="off"
           />
-          <p className={formatProblem ? styles.hintError : styles.hint}>{formatProblem || NICKNAME_HINT}</p>
+          <p
+            className={['invalid', 'taken'].includes(nickCheck.status) ? styles.hintError : nickCheck.status === 'ok' ? styles.hintOk : styles.hint}
+            aria-live="polite"
+          >
+            {nickCheck.message || NICKNAME_HINT}
+          </p>
 
           {message && (
             <p className={message.type === 'error' ? styles.error : styles.info} role="status">
@@ -94,7 +102,7 @@ export default function SettingsPage() {
             </p>
           )}
 
-          <button type="submit" className={styles.submit} disabled={loading || saving || unchanged || Boolean(formatProblem) || !nickname.trim()}>
+          <button type="submit" className={styles.submit} disabled={loading || saving || unchanged || blocked || !nickname.trim()}>
             {saving ? '저장 중...' : isFirstSetup ? '저장하고 시작하기' : '저장'}
           </button>
 

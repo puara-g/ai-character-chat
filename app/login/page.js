@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { checkNickname, isNicknameTaken, saveNickname, getMyProfile, NICKNAME_HINT } from '@/lib/profiles';
+import { Shuffle } from 'lucide-react';
+import { ensureNickname, randomNickname, NICKNAME_HINT } from '@/lib/profiles';
+import useNicknameCheck from '@/lib/useNicknameCheck';
 import styles from './login.module.css';
 
 // 이메일 인증 때문에 가입 직후 저장하지 못한 닉네임은 첫 로그인 때 저장
@@ -39,6 +41,10 @@ export default function LoginPage() {
     if (new URLSearchParams(window.location.search).get('mode') === 'signup') setIsSignUp(true);
   }, []);
 
+  // 닉네임은 선택: 비워 두면 가입할 때 랜덤으로 지어 줌
+  const nickCheck = useNicknameCheck(nickname);
+  const nickBlocked = isSignUp && ['invalid', 'taken', 'checking'].includes(nickCheck.status);
+
   const switchMode = (signUp) => {
     setIsSignUp(signUp);
     setMessage(null);
@@ -51,9 +57,8 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const problem = checkNickname(nickname);
-        if (problem || (await isNicknameTaken(nickname))) {
-          setMessage({ type: 'error', text: problem || '이미 쓰고 있는 닉네임이에요. 다른 닉네임을 정해 주세요.' });
+        if (nickBlocked) {
+          setMessage({ type: 'error', text: nickCheck.message || '닉네임을 확인해 주세요.' });
           setLoading(false);
           return;
         }
@@ -61,10 +66,9 @@ export default function LoginPage() {
         if (error) {
           setMessage({ type: 'error', text: `회원가입 실패: ${error.message}` });
         } else if (data.session) {
-          // 이메일 인증이 꺼져 있으면 바로 로그인됨 → 닉네임 바로 저장
-          const saveProblem = await saveNickname(data.user.id, nickname);
-          if (saveProblem) writePending(nickname.trim());
-          router.push(saveProblem ? '/settings' : '/');
+          // 이메일 인증이 꺼져 있으면 바로 로그인됨 → 닉네임 저장 (비웠거나 그새 누가 쓰면 랜덤)
+          await ensureNickname(data.user.id, nickname);
+          router.push('/');
           router.refresh();
           return;
         } else {
@@ -77,14 +81,10 @@ export default function LoginPage() {
         if (error) {
           setMessage({ type: 'error', text: '이메일 또는 비밀번호가 맞지 않아요.' });
         } else {
-          // 닉네임이 없으면: 가입 때 적어 둔 게 있으면 저장, 아니면 설정 페이지로
-          let needsNickname = false;
-          if (!(await getMyProfile(data.user.id))) {
-            const pending = readPending();
-            needsNickname = !pending || Boolean(await saveNickname(data.user.id, pending));
-          }
+          // 닉네임이 없으면: 가입 때 적어 둔 걸로, 없거나 못 쓰면 랜덤으로 지어 줌
+          await ensureNickname(data.user.id, readPending());
           writePending('');
-          router.push(needsNickname ? '/settings' : '/');
+          router.push('/');
           router.refresh();
           return;
         }
@@ -133,20 +133,37 @@ export default function LoginPage() {
           {isSignUp && (
             <div>
               <label className={styles.label} htmlFor="nickname">
-                닉네임
+                닉네임<span className={styles.optional}>선택</span>
               </label>
-              <input
-                id="nickname"
-                type="text"
-                className={styles.input}
-                placeholder="닉네임"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                maxLength={12}
-                autoComplete="nickname"
-                required
-              />
-              <p className={styles.hint}>{NICKNAME_HINT} · 내가 공개한 캐릭터에 &ldquo;만든 사람&rdquo;으로 보여요</p>
+              <div className={styles.nickRow}>
+                <input
+                  id="nickname"
+                  type="text"
+                  className={styles.input}
+                  placeholder="비워 두면 자동으로 지어 드려요"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  maxLength={12}
+                  autoComplete="nickname"
+                  aria-describedby="nickname-status"
+                />
+                <button
+                  type="button"
+                  className={styles.randomBtn}
+                  onClick={() => setNickname(randomNickname())}
+                  title="랜덤 닉네임"
+                  aria-label="랜덤 닉네임 넣기"
+                >
+                  <Shuffle size={18} aria-hidden="true" />
+                </button>
+              </div>
+              <p
+                id="nickname-status"
+                className={`${styles.hint} ${nickCheck.status === 'ok' ? styles.hintOk : ''} ${['invalid', 'taken'].includes(nickCheck.status) ? styles.hintBad : ''}`}
+                aria-live="polite"
+              >
+                {nickCheck.message || `${NICKNAME_HINT} · 내가 공개한 캐릭터에 "만든 사람"으로 보여요`}
+              </p>
             </div>
           )}
           <div>
@@ -187,7 +204,7 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button type="submit" className={styles.submit} disabled={loading}>
+          <button type="submit" className={styles.submit} disabled={loading || nickBlocked}>
             {loading ? '처리 중...' : isSignUp ? '가입하기' : '로그인'}
           </button>
         </form>

@@ -68,6 +68,12 @@
   color: var(--danger);
 }
 
+.hintOk {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--success);
+}
+
 .error,
 .info {
   margin: var(--space-4) 0 0;

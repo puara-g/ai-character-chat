@@ -125,6 +125,43 @@
   color: var(--muted);
 }
 
+.optional {
+  margin-left: var(--space-1);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.nickRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.randomBtn {
+  flex-shrink: 0;
+  width: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.randomBtn:hover {
+  border-color: var(--purple-line);
+  color: var(--purple);
+}
+
+.hintOk {
+  color: var(--success);
+}
+
+.hintBad {
+  color: var(--danger);
+}
+
 .message {
   margin: 0;
   padding: var(--space-3) var(--space-4);
