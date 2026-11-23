@@ -24,8 +24,8 @@ export default function AppHeader({ user, onLogout, guest = false }) {
 
   const links = [
     { href: '/', label: '내 캐릭터' },
-    { href: '/explore', label: '둘러보기' },
     { href: '/ranking', label: '랭킹' },
+    { href: '/explore', label: '둘러보기' },
   ];
 
   return (
