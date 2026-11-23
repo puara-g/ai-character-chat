@@ -709,9 +709,22 @@
     display: none;
   }
 
-  .profileLink {
-    max-width: 96px;
+  .nav {
+    gap: 0;
+  }
+
+  .navLink {
     padding: var(--space-2);
+  }
+
+  /* 휴대폰: 프로필은 아이콘만, 로그아웃은 프로필 설정 페이지에서 */
+  .profileLink {
+    padding: var(--space-2);
+  }
+
+  .profileName,
+  .logoutBtn {
+    display: none;
   }
 
   .container {

@@ -34,6 +34,9 @@ export default function SettingsPage() {
     })();
   }, [router]);
 
+  // 아직 닉네임이 없는 상태 (가입 직후·기존 사용자 첫 설정)
+  const isFirstSetup = !loading && !saved;
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -41,10 +44,16 @@ export default function SettingsPage() {
     const problem = await saveNickname(user.id, nickname);
     if (problem) {
       setMessage({ type: 'error', text: problem });
-    } else {
-      setSaved(nickname.trim());
-      setMessage({ type: 'info', text: '닉네임을 저장했어요.' });
+      setSaving(false);
+      return;
     }
+    // 처음 정한 거면 바로 메인으로, 바꾼 거면 여기서 안내만
+    if (isFirstSetup) {
+      router.push('/');
+      return;
+    }
+    setSaved(nickname.trim());
+    setMessage({ type: 'info', text: '닉네임을 저장했어요.' });
     setSaving(false);
   };
 
@@ -60,7 +69,7 @@ export default function SettingsPage() {
     <div className={styles.page}>
       <AppHeader user={user} onLogout={handleLogout} />
       <main className={styles.container}>
-        <h1 className={styles.title}>프로필 설정</h1>
+        <h1 className={styles.title}>{isFirstSetup ? '닉네임 정하기' : '프로필 설정'}</h1>
         <p className={styles.sub}>닉네임은 내가 공개한 캐릭터에 &ldquo;만든 사람&rdquo;으로 보이고, 둘러보기에서 검색할 수 있어요.</p>
 
         <form className={styles.card} onSubmit={handleSave}>
@@ -86,11 +95,17 @@ export default function SettingsPage() {
           )}
 
           <button type="submit" className={styles.submit} disabled={loading || saving || unchanged || Boolean(formatProblem) || !nickname.trim()}>
-            {saving ? '저장 중...' : '저장'}
+            {saving ? '저장 중...' : isFirstSetup ? '저장하고 시작하기' : '저장'}
           </button>
 
           {user?.email && <p className={styles.account}>로그인 계정: {user.email}</p>}
         </form>
+
+        {user && (
+          <button type="button" className={styles.logout} onClick={handleLogout}>
+            로그아웃
+          </button>
+        )}
       </main>
     </div>
   );

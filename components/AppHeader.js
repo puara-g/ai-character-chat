@@ -52,11 +52,12 @@ export default function AppHeader({ user, onLogout, guest = false }) {
 
           {user ? (
             <div className={styles.headerUser}>
-              <Link href="/settings" className={styles.profileLink} title="닉네임 설정">
+              <Link href="/settings" className={styles.profileLink} title="프로필 설정" aria-label="프로필 설정">
                 <UserRound size={16} aria-hidden="true" />
                 <span className={styles.profileName}>{user.id && nickname ? nickname : '닉네임 설정'}</span>
               </Link>
-              <button type="button" className={styles.headerBtn} onClick={onLogout}>
+              {/* 휴대폰에선 숨기고 프로필 설정 페이지에서 로그아웃 */}
+              <button type="button" className={`${styles.headerBtn} ${styles.logoutBtn}`} onClick={onLogout}>
                 로그아웃
               </button>
             </div>
